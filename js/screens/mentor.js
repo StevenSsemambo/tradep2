@@ -1,70 +1,100 @@
 /* ═══════════════════════════════════════════
-   MENTOR / CHAT SCREEN
+   MENTOR SCREEN — Smart AI Chat
+   Uses generateFloatResponse() (the smart path)
+   which chains to generateEnhancedResponse()
+   then generateResponse() as fallback
    ═══════════════════════════════════════════ */
 
 function renderMentor() {
   const name = STATE.user.name || 'Trader';
-  const history = STATE.chatHistory;
-  const dna = calculateTraderDNA ? calculateTraderDNA() : null;
+  const history = STATE.chatHistory || [];
+  const dna = (typeof calculateTraderDNA === 'function') ? calculateTraderDNA() : null;
+  const allTrades = [...(STATE.journal||[]), ...(STATE.simTrades||[])];
+  const wr = allTrades.length > 0
+    ? Math.round(allTrades.filter(t=>parseFloat(t.pnl)>0).length / allTrades.length * 100) : 0;
+
+  // Build personalised welcome based on data
+  const welcomeLines = [];
+  if (dna) welcomeLines.push(`I can see you are a <strong style="color:var(--accent)">${dna.archetype}</strong>.`);
+  if (allTrades.length > 0) welcomeLines.push(`${allTrades.length} trades logged · ${wr}% win rate.`);
+  if ((STATE.dailyStreak||0) > 0) welcomeLines.push(`${STATE.dailyStreak}-day streak 🔥`);
+  const welcomeDetail = welcomeLines.length > 0
+    ? welcomeLines.join(' ') + '<br><br>'
+    : '';
 
   return `<div style="display:flex;flex-direction:column;height:calc(100vh - var(--total-nav));background:var(--bg)">
+
     <!-- Header -->
-    <div style="flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--bdr2);display:flex;align-items:center;justify-content:space-between;background:var(--bg)">
+    <div style="flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--bdr2);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent-d),var(--accent));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🤖</div>
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent-d),var(--accent));display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;box-shadow:0 0 14px var(--accent-glow)">🤖</div>
         <div>
           <div style="font-family:var(--display);font-weight:800;font-size:16px">TradeMind AI</div>
           <div style="display:flex;align-items:center;gap:5px;margin-top:1px">
             <span class="live-dot"></span>
-            <span style="font-size:11px;color:var(--green)">Online · Knows your full profile</span>
+            <span style="font-size:11px;color:var(--accent)">Knows your full profile · Personalised answers</span>
           </div>
         </div>
       </div>
-      <button class="btn-icon" onclick="clearChat()" title="Clear chat" style="flex-shrink:0">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.15"/></svg>
-      </button>
+      <div style="display:flex;gap:6px">
+        <button class="btn-icon" onclick="clearChat()" title="Clear chat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.15"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Quick chips -->
-    <div style="flex-shrink:0;display:flex;gap:6px;overflow-x:auto;padding:8px 14px 8px;border-bottom:1px solid var(--bdr2);scrollbar-width:none;-webkit-overflow-scrolling:touch">
+    <div style="flex-shrink:0;display:flex;gap:6px;overflow-x:auto;padding:8px 14px;border-bottom:1px solid var(--bdr2);scrollbar-width:none;-webkit-overflow-scrolling:touch">
       ${[
-        'My weakness?','Best pair for me','Explain leverage','What is a pip?',
-        'Position sizing','Best time to trade','RSI explained','Psychology tips',
-        'My progress','Motivate me','SMC explained','London Breakout',
-        'Support & resistance','Candlestick patterns','Risk management'
-      ].map(q => `<div style="flex-shrink:0;background:var(--bg3);border:1px solid var(--bdr2);border-radius:20px;padding:6px 12px;font-size:11px;color:var(--txt2);cursor:pointer;white-space:nowrap;font-family:var(--display);font-weight:600;transition:all .15s" onclick="sendQuickQuestion('${q.replace(/'/g,"\'")}');this.style.color='var(--gold)';this.style.borderColor='var(--bdr)'">${q}</div>`).join('')}
+        'My weakness?', 'Best pair for me', 'Should I trade today?',
+        'My win rate', 'What is my DNA?', 'Motivate me',
+        'Position sizing', 'Best time to trade', 'Review my last trade',
+        'What is RSI?', 'SMC explained', 'London Breakout',
+        'My progress', 'Psychology tips', 'Risk management'
+      ].map(q => `<div
+        style="flex-shrink:0;background:var(--bg3);border:1px solid var(--bdr2);border-radius:20px;padding:6px 13px;font-size:11px;color:var(--txt2);cursor:pointer;white-space:nowrap;font-family:var(--display);font-weight:600;transition:all .2s;-webkit-tap-highlight-color:transparent"
+        onclick="sendQuickQuestion('${q.replace(/'/g, "\\'")}');this.style.color='var(--accent)';this.style.borderColor='var(--accent)'"
+      >${q}</div>`).join('')}
     </div>
 
-    <!-- Messages area - this MUST be flex:1 and overflow:auto -->
+    <!-- Messages -->
     <div id="chat-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
       ${history.length === 0 ? `
-        <div style="align-self:flex-start;background:var(--bg3);border:1px solid var(--bdr2);border-radius:16px 16px 16px 4px;padding:12px 14px;max-width:88%;font-size:14px;line-height:1.55">
-          Hey ${name}! 👋 I'm <strong style="color:var(--gold)">TradeMind AI</strong> — your personal trading coach.<br><br>
-          ${dna ? `I can see you're a <strong>${dna.archetype}</strong> with ${STATE.journal.length} journal entries and ${STATE.simTrades.length} sim trades. I know everything about your performance.<br><br>` : ''}
-          Ask me anything — concepts, strategy, your personal data, or tap a chip above. 🎯
+        <div class="chat-msg bot">
+          Hey ${name}! 👋 I am <strong style="color:var(--accent)">TradeMind AI</strong> — your intelligent trading coach.<br><br>
+          ${welcomeDetail}
+          I know your trading history, DNA profile, and every lesson in the academy. Ask me anything about your performance, forex concepts, or strategies — or tap a chip above. 🎯
         </div>
-      ` : history.map(m => `<div style="max-width:88%;padding:11px 14px;border-radius:${m.role==='user'?'16px 16px 4px 16px':'16px 16px 16px 4px'};font-size:14px;line-height:1.55;align-self:${m.role==='user'?'flex-end':'flex-start'};background:${m.role==='user'?'linear-gradient(135deg,var(--gold),var(--gold-d))':'var(--bg3)'};color:${m.role==='user'?'#0A0A0F':'var(--txt)'};border:${m.role==='bot'?'1px solid var(--bdr2)':'none'}">${m.text}</div>`).join('')}
-      <div id="chat-end" style="height:4px"></div>
+      ` : history.map(m => `
+        <div class="chat-msg ${m.role}">${m.text}</div>
+      `).join('')}
+      <div id="chat-end" style="height:4px;flex-shrink:0"></div>
     </div>
 
-    <!-- Input bar - CRITICAL: flex-shrink:0 keeps it always visible -->
-    <div style="flex-shrink:0;padding:10px 12px;border-top:1px solid var(--bdr2);display:flex;gap:8px;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding-bottom:max(10px,env(safe-area-inset-bottom,10px))">
-      <input id="chat-inp" 
-        style="flex:1;background:rgba(255,255,255,.05);border:1.5px solid var(--bdr2);border-radius:24px;padding:11px 16px;font-size:14px;color:var(--txt);transition:border-color .2s;outline:none;font-family:inherit"
-        placeholder="Ask anything about trading..."
+    <!-- Input bar -->
+    <div style="flex-shrink:0;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom,10px));border-top:1px solid var(--bdr2);display:flex;gap:8px;align-items:center;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)">
+      <input id="chat-inp"
+        style="flex:1;background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:24px;padding:11px 16px;font-size:14px;color:var(--txt);transition:border-color .2s;outline:none;font-family:inherit"
+        placeholder="Ask me anything about your trading..."
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitChat()}"
-        onfocus="this.style.borderColor='var(--gold)'"
+        onfocus="this.style.borderColor='var(--accent)'"
         onblur="this.style.borderColor='var(--bdr2)'">
-      <button onclick="submitChat()" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent-d),var(--accent));color:#0A0A0F;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;box-shadow:0 4px 12px var(--gold-glow);border:none;transition:transform .1s" ontouchstart="this.style.transform='scale(.88)'" ontouchend="this.style.transform='scale(1)'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      <button onclick="submitChat()"
+        style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent-d),var(--accent));color:#080E14;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;box-shadow:0 4px 14px var(--accent-glow);border:none;transition:transform .15s"
+        ontouchstart="this.style.transform='scale(.88)'"
+        ontouchend="this.style.transform='scale(1)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
       </button>
     </div>
   </div>`;
 }
 
 function scrollChatToBottom() {
-  const end = document.getElementById('chat-end');
-  if (end) setTimeout(() => end.scrollIntoView({ behavior: 'smooth' }), 50);
+  const el = document.getElementById('chat-end');
+  if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'end' }), 80);
 }
 
 function appendChatMessage(role, text) {
@@ -74,6 +104,7 @@ function appendChatMessage(role, text) {
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
   div.innerHTML = text;
+  div.style.animation = 'fadeUp .25s ease both';
   if (end) container.insertBefore(div, end);
   else container.appendChild(div);
   scrollChatToBottom();
@@ -81,7 +112,7 @@ function appendChatMessage(role, text) {
 
 function sendQuickQuestion(q) {
   const inp = document.getElementById('chat-inp');
-  if (inp) inp.value = q;
+  if (inp) { inp.value = q; inp.focus(); }
   submitChat();
 }
 
@@ -91,12 +122,14 @@ function submitChat() {
   const text = inp.value.trim();
   if (!text) return;
   inp.value = '';
+  inp.style.borderColor = 'var(--bdr2)';
 
-  // Add user message
+  // Save and display user message
+  if (!STATE.chatHistory) STATE.chatHistory = [];
   STATE.chatHistory.push({ role: 'user', text });
   appendChatMessage('user', text);
 
-  // Show typing indicator
+  // Typing indicator
   const typId = 'typing-' + Date.now();
   const container = document.getElementById('chat-messages');
   const end = document.getElementById('chat-end');
@@ -110,15 +143,48 @@ function submitChat() {
     scrollChatToBottom();
   }
 
-  const delay = 400 + Math.random() * 800;
+  // Realistic delay (400-1200ms based on question length)
+  const delay = Math.min(400 + text.length * 10, 1200);
+
   setTimeout(() => {
     const typEl = document.getElementById(typId);
     if (typEl) typEl.remove();
-    const response = generateResponse(text);
+
+    // ── SMART AI ROUTING ──
+    // 1. Try generateFloatResponse first (most personalised — uses DNA, journal, BEHAVIOR)
+    // 2. Falls through to generateEnhancedResponse (uses live STATE data)
+    // 3. Falls through to generateResponse (topic knowledge + glossary)
+    let response = '';
+    try {
+      if (typeof generateFloatResponse === 'function') {
+        response = generateFloatResponse(text);
+      } else if (typeof generateEnhancedResponse === 'function') {
+        response = generateEnhancedResponse(text);
+      } else if (typeof generateResponse === 'function') {
+        response = generateResponse(text);
+      }
+    } catch(e) {
+      console.warn('AI error:', e);
+      response = typeof generateResponse === 'function'
+        ? generateResponse(text)
+        : 'I had trouble processing that. Could you rephrase your question?';
+    }
+
+    if (!response || response === 'undefined') {
+      response = typeof generateResponse === 'function'
+        ? generateResponse(text)
+        : 'Ask me anything about forex, your trades, or your progress — I am here to help!';
+    }
+
     STATE.chatHistory.push({ role: 'bot', text: response });
     appendChatMessage('bot', response);
     addXP(2);
     saveState();
+
+    // Trim history to last 40 messages to prevent memory bloat
+    if (STATE.chatHistory.length > 40) {
+      STATE.chatHistory = STATE.chatHistory.slice(-40);
+    }
   }, delay);
 }
 
@@ -129,7 +195,3 @@ function clearChat() {
     navigate('mentor');
   }
 }
-
-// All responses handled in chatbot.js
-
-/* === js/screens/profile.js === */
