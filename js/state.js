@@ -109,8 +109,12 @@ function applyFontSize(s) {
 }
 
 function applyBrightness(v) {
-  STATE.user.brightness = v;
-  document.documentElement.style.setProperty('--brightness', v / 100);
+  STATE.user.brightness = parseInt(v) || 100;
+  // Apply filter directly to documentElement so it works everywhere
+  const val = STATE.user.brightness / 100;
+  document.documentElement.style.filter = val === 1 ? '' : `brightness(${val})`;
+  // Also set the CSS var for any future use
+  document.documentElement.style.setProperty('--brightness', val);
 }
 
 // ── NAVIGATION ──
