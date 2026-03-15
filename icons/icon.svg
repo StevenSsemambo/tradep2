@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A1A28"/>
+      <stop offset="100%" stop-color="#0A0A14"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0D070"/>
+      <stop offset="60%" stop-color="#C9A84C"/>
+      <stop offset="100%" stop-color="#7A5C20"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFCBA4"/>
+      <stop offset="100%" stop-color="#E8A878"/>
+    </linearGradient>
+    <linearGradient id="bullcandle" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80"/>
+      <stop offset="100%" stop-color="#16A34A"/>
+    </linearGradient>
+    <linearGradient id="bearcandle" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F87171"/>
+      <stop offset="100%" stop-color="#DC2626"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- App background rounded rect -->
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="0" y1="170" x2="512" y2="170" stroke="rgba(201,168,76,0.08)" stroke-width="1"/>
+  <line x1="0" y1="340" x2="512" y2="340" stroke="rgba(201,168,76,0.08)" stroke-width="1"/>
+  <line x1="170" y1="0" x2="170" y2="512" stroke="rgba(201,168,76,0.08)" stroke-width="1"/>
+  <line x1="342" y1="0" x2="342" y2="512" stroke="rgba(201,168,76,0.08)" stroke-width="1"/>
+
+  <!-- ── BABY BODY ── -->
+  <!-- Diaper/body -->
+  <ellipse cx="256" cy="350" rx="80" ry="55" fill="#E8D8F0"/>
+  <ellipse cx="256" cy="338" rx="72" ry="48" fill="#F0E8FF"/>
+
+  <!-- Left arm reaching up holding candlestick -->
+  <path d="M178 300 Q150 270 145 240 Q140 218 155 210" stroke="url(#skin)" stroke-width="22" fill="none" stroke-linecap="round"/>
+  <!-- Right arm down -->
+  <path d="M334 300 Q360 310 370 330" stroke="url(#skin)" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <!-- Right chubby hand -->
+  <ellipse cx="374" cy="338" rx="18" ry="14" fill="url(#skin)"/>
+
+  <!-- Left chubby hand gripping candlestick -->
+  <ellipse cx="155" cy="208" rx="20" ry="16" fill="url(#skin)"/>
+  <!-- Fingers around stick -->
+  <ellipse cx="148" cy="204" rx="8" ry="6" fill="#E89060"/>
+  <ellipse cx="162" cy="200" rx="8" ry="6" fill="#E89060"/>
+
+  <!-- ── BABY HEAD ── -->
+  <!-- Head -->
+  <ellipse cx="256" cy="220" rx="88" ry="84" fill="url(#skin)"/>
+  <!-- Hair tufts -->
+  <path d="M210 148 Q218 130 230 138" stroke="#5C3010" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M250 140 Q256 122 262 132" stroke="#5C3010" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M290 148 Q300 130 308 140" stroke="#5C3010" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+  <!-- Eyes — big sparkly baby eyes -->
+  <ellipse cx="228" cy="218" rx="16" ry="17" fill="#2C1810"/>
+  <ellipse cx="284" cy="218" rx="16" ry="17" fill="#2C1810"/>
+  <ellipse cx="223" cy="213" rx="5" ry="5" fill="white"/>
+  <ellipse cx="279" cy="213" rx="5" ry="5" fill="white"/>
+  <circle cx="234" cy="222" r="3" fill="white" opacity="0.9"/>
+  <circle cx="290" cy="222" r="3" fill="white" opacity="0.9"/>
+
+  <!-- Rosy cheeks -->
+  <ellipse cx="208" cy="234" rx="16" ry="10" fill="rgba(255,140,120,0.35)"/>
+  <ellipse cx="304" cy="234" rx="16" ry="10" fill="rgba(255,140,120,0.35)"/>
+
+  <!-- Happy smile -->
+  <path d="M234 248 Q256 268 278 248" stroke="#C86040" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+  <!-- Small cute nose -->
+  <ellipse cx="256" cy="240" rx="7" ry="5" fill="rgba(200,110,80,0.4)"/>
+
+  <!-- ── CANDLESTICK ── held high -->
+  <!-- The big bull candle -->
+  <line x1="220" y1="60" x2="220" y2="210" stroke="url(#bullcandle)" stroke-width="4" stroke-linecap="round" filter="url(#glow)"/>
+  <rect x="200" y="90" width="40" height="80" fill="url(#bullcandle)" rx="4" filter="url(#glow)"/>
+
+  <!-- Bear candle to the right -->
+  <line x1="290" y1="50" x2="290" y2="200" stroke="url(#bearcandle)" stroke-width="4" stroke-linecap="round"/>
+  <rect x="272" y="78" width="36" height="76" fill="url(#bearcandle)" rx="4"/>
+
+  <!-- Second bull candle -->
+  <line x1="355" y1="72" x2="355" y2="195" stroke="url(#bullcandle)" stroke-width="3.5" stroke-linecap="round"/>
+  <rect x="340" y="100" width="30" height="62" fill="url(#bullcandle)" rx="3"/>
+
+  <!-- Gold glow sparkles around candlestick the baby holds -->
+  <circle cx="190" cy="85" r="4" fill="#F0D070" opacity="0.8"/>
+  <circle cx="252" cy="62" r="3" fill="#F0D070" opacity="0.6"/>
+  <circle cx="240" cy="78" r="2.5" fill="white" opacity="0.9"/>
+  <circle cx="208" cy="72" r="2" fill="#C9A84C" opacity="0.8"/>
+
+  <!-- ── BOTTOM WORDMARK ── -->
+  <text x="256" y="440" text-anchor="middle" font-family="'Arial Black',sans-serif" font-weight="900" font-size="52" fill="url(#gold)" letter-spacing="2">TRADE</text>
+  <text x="256" y="482" text-anchor="middle" font-family="Arial,sans-serif" font-weight="400" font-size="24" fill="rgba(201,168,76,0.6)" letter-spacing="8">BABY PRO</text>
+</svg>
