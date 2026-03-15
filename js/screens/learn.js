@@ -200,9 +200,21 @@ function completelesson(id) {
     STATE.progress[id] = true;
     const found = getLessonById(id);
     const xp = found?.lesson?.xp || 50;
+    const prevLevel = STATE.user.level;
     addXP(xp);
-    showToast(`🎓 Lesson complete! +${xp} XP`);
     saveState();
+    const totalDone = Object.keys(STATE.progress).length;
+    const isFirstLesson = totalDone === 1;
+    const leveledUp = STATE.user.level > prevLevel;
+    setTimeout(() => {
+      if (leveledUp && typeof showCelebration === 'function') {
+        showCelebration('level_up', { level: STATE.user.level });
+      } else if (isFirstLesson && typeof showCelebration === 'function') {
+        showCelebration('lesson_complete', { xp, lessonsLeft: totalLessons() - totalDone });
+      } else {
+        showToast(`🎓 Lesson complete! +${xp} XP`);
+      }
+    }, 300);
   }
   renderScreen('lesson');
 }
