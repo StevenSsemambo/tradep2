@@ -415,7 +415,14 @@ function finishOnboarding() {
   if (onb) { onb.style.transition = 'opacity .4s ease'; onb.style.opacity = '0'; setTimeout(() => { onb.style.display = 'none'; }, 400); }
 
   navigate('home');
-  setTimeout(() => { showToast(`Welcome, ${STATE.user.name}! 🎉 Your trading journey starts now.`); if (typeof launchConfetti === 'function') launchConfetti(); }, 600);
+  setTimeout(() => {
+    if (typeof showCelebration === 'function') {
+      showCelebration('onboarding_done', { name: STATE.user.name });
+    } else {
+      showToast(`Welcome, ${STATE.user.name}! 🎉 Your trading journey starts now.`);
+      if (typeof launchConfetti === 'function') launchConfetti();
+    }
+  }, 700);
   if (typeof setupNotificationSchedule === 'function') setupNotificationSchedule();
   if (typeof initFloatChat === 'function') initFloatChat();
 }
