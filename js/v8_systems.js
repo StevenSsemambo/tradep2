@@ -2447,7 +2447,7 @@ function generateFloatResponse(input) {
 
   // ── HIGHLY PERSONALIZED RESPONSES ──
   if (q.match(/weakness|wrong|losing|problem|issue|fix me/)) {
-// [manual-fix]     if (!dna) return `Log at least 5 trades and I can tell you exactly what`s holding you back. Right now I need your data.';
+    if (!dna || (j.length + t.length) < 3) return `${name}, I need more data to pinpoint your weakness precisely. Log at least 3-5 trades in the Journal with honest mood entries — then I can give you a specific, data-driven answer based on YOUR patterns.`;
     const arch = TRADER_ARCHETYPES[dna.archetype];
     return `${name}, based on your ${j.length + t.length} trades your #1 issue is: <strong style="color:var(--red)">${arch?.weaknesses[0]||'discipline'}</strong>. Your emotional control score is ${dna.scores.emotionalControl}/100. ${arch?.advice||'Focus on your plan.'}`;
   }
@@ -2455,7 +2455,7 @@ function generateFloatResponse(input) {
   if (q.match(/best pair|which pair|what pair/)) {
     const pp = BEHAVIOR.getPairPerformance();
     const best = pp.sort((a,b)=>b.pnl-a.pnl)[0];
-// [manual-fix]     if (!best) return `Log some trades across different pairs first. Once you have data, I`ll tell you exactly which pair suits you best.';
+    if (!best) return `${name}, log trades across a few different pairs first — even 5-10 journal entries is enough. Once I have your data, I can tell you exactly which pair gives you the highest win rate and P&L.`;
     return `Your data says: <strong style="color:var(--gold)">${best.pair}</strong> is your best pair with $${best.pnl.toFixed(0)} total profit and ${best.winRate}% win rate across ${best.count} trades. Specialize there.`;
   }
 
@@ -2464,7 +2464,8 @@ function generateFloatResponse(input) {
     const total = j.length + t.length;
     const wr = total ? Math.round(wins.length/total*100) : 0;
     const totalPnl = [...j,...t].reduce((a,x)=>a+(parseFloat(x.pnl)||0),0);
-// [manual-fix]     return `${name}, across your <strong>${total} trades</strong>: <strong style="color:${wr>=50?`var(--green)`:`var(--red)`}">${wr}% win rate</strong>, <strong style="color:${totalPnl>=0?`var(--green)`:`var(--red)`}">${totalPnl>=0?`+`:``}$${totalPnl.toFixed(0)} P&L</strong>. ${wr>=50?`You`re above average — now focus on increasing your R:R.`:`Win rate needs work — focus only on A+ setups with confluence.'}`;
+    if (!total) return `${name}, no trades logged yet. Start by making sim trades in the Trade terminal or log real trades in the Journal.`;
+    return `<strong>${name}</strong>, across your <strong>${total} trades</strong>:<br><br>📊 Win rate: <strong style="color:${wr>=50?"var(--green)":"var(--red)"}">${wr}%</strong><br>💰 P&L: <strong style="color:${totalPnl>=0?"var(--green)":"var(--red)"}">${totalPnl>=0?"+":""}$${totalPnl.toFixed(0)}</strong><br><br>${wr>=50?"You are above the 50% threshold — now focus on increasing your average winner vs average loser.":"Win rate needs improvement — be more selective. Only take setups with 2+ confluences."}`;
   }
 
   if (q.match(/psychology|emotion|mood|mental/)) {
@@ -2485,14 +2486,14 @@ function generateFloatResponse(input) {
   }
 
   if (q.match(/progress|lessons|level|xp|learning/)) {
-// [manual-fix]     return `You`re at <strong style="color:var(--gold)">Level ${STATE.user.level}</strong> with <strong>${completedCount()}/${totalLessons()} lessons</strong> complete (${progressPct()}%). Your streak is <strong style="color:var(--orange)">${STATE.dailyStreak} days 🔥</strong>. ${progressPct()<50?`Focus on completing the Risk Management section next — it`s the most impactful.`:`You`re well advanced. Time to focus on strategy mastery and consistent execution.'}`;
+    return `You are at <strong style="color:var(--accent)">Level ${STATE.user.level}</strong> with <strong>${completedCount()}/${totalLessons()} lessons</strong> complete (${progressPct()}%). Your streak is <strong style="color:var(--orange)">${STATE.dailyStreak} days 🔥</strong>.<br><br>${progressPct()<50?"📌 Focus on completing the Risk Management section next — it is the most impactful for real-money survival.":"🎯 You are well advanced. Time to focus on strategy mastery, consistent journal entries, and refining your edge."}`;
   }
 
   if (q.match(/today.*trade|should.*trade|ready.*trade|trade.*today/)) {
     const dna2 = calculateTraderDNA();
     if (!dna2) return 'Answer the "Should I Trade?" checklist in your Profile for a full readiness assessment.';
     const revengeRecent = j.slice(-3).filter(x=>x.mood==='revenge').length;
-// [manual-fix]     if (revengeRecent > 0) return `🔴 <strong style="color:var(--red)">I`d advise against trading today.</strong> Your last 3 journal entries show emotional trading. Rest, review your rules, return tomorrow.';
+    if (revengeRecent > 0) return `🔴 <strong style="color:var(--red)">I would advise against trading today, ${name}.</strong> Your last 3 journal entries show emotional trading patterns. Rest today, review your rules tonight, and return tomorrow with a clear head.`;
     return `Based on your recent data: ${dna2.scores.emotionalControl > 60 ? '🟢 <strong style="color:var(--green)">You look ready to trade.</strong> Stick to your plan, size correctly, and only take A+ setups.' : '🟡 <strong style="color:var(--gold)">Trade cautiously.</strong> Reduce size by 50% and only take the clearest setups. Your emotional score is lower than usual.'}`;
   }
 
@@ -2509,12 +2510,6 @@ function generateFloatResponse(input) {
   // Fall through to enhanced response
   return generateEnhancedResponse(input);
 }
-
-// ── PATCH SAVE/LOAD STATE FOR NEW DATA ──
-const _origLoadState = loadState;
-
-const _origSaveState = saveState;
-
 
 console.log('✅ TradeBaby v6 Analytics + Float Chat loaded');
 
@@ -3313,7 +3308,7 @@ const AI_TRACKER = {
 
     // Data-based suggestions
     if (j.length === 0) return '📓 Start logging your trades — even sim trades. The more data you give me, the better I understand you.';
-// [manual-fix]     if (completed < 5) return `📚 Complete the Forex Basics section first — it`s the foundation everything else builds on.';
+    if (completed < 5) return '📚 Complete the Forex Basics section first — it is the foundation everything else builds on.';
 
     const recentMoods = j.slice(-5).map(t=>t.mood);
     if (recentMoods.filter(m=>m==='revenge'||m==='frustrated').length >= 2) return '🧠 Your recent trades show emotional stress. Consider taking a break before your next session.';
