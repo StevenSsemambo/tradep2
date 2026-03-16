@@ -599,8 +599,11 @@ function showCandleDetail(name) {
 }
 
 function renderStrategies() {
+  if (typeof STRATEGIES === 'undefined' || !STRATEGIES.length) {
+    return `<div class="screen-pad"><div class="pg-header a-fadeup"><button class="back-btn" onclick="navigate('learn')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button><h1 class="pg-title">Strategies</h1></div><div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:12px">⚔️</div><div style="font-family:var(--display);font-weight:700">Loading strategies...</div><div style="font-size:13px;color:var(--txt2);margin-top:8px">Complete a few lessons first to unlock the Strategy Library.</div><button class="btn btn-outline" style="margin-top:14px" onclick="navigate('learn')">← Back to Learn</button></div></div>`;
+  }
   const styles = ['All','Day Trade','Swing','Swing/Day','Day/Swing','Scalping','Position'];
-  const filtered = _stratFilter === 'All' ? STRATEGIES : STRATEGIES.filter(s => s.style.includes(_stratFilter));
+  const filtered = _stratFilter === 'All' ? STRATEGIES : STRATEGIES.filter(s => s.style && s.style.includes(_stratFilter));
   return `<div class="screen-pad">
     <div class="pg-header a-fadeup" style="padding:0 0 12px">
       <div style="display:flex;gap:10px;align-items:center">
@@ -640,8 +643,9 @@ function renderStrategies() {
 }
 
 function showStratDetail(id) {
+  if (typeof STRATEGIES === 'undefined') return;
   const s = STRATEGIES.find(x => x.id === id);
-  if (!s) return;
+  if (!s) { showToast('Strategy not found'); return; }
   showModal(`<div class="modal-handle"></div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
       <span style="font-size:36px">${s.emoji}</span>
