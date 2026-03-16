@@ -504,28 +504,7 @@ function qaTap(el, action) {
   if (dx < 12 && dy < 12) navigate(action);
 }
 
-/* ══ SWIPE GESTURE ══ */
-(function initSwipe() {
-  let tx = 0, ty = 0, tgt = null;
-  document.addEventListener('touchstart', e => {
-    tx = e.touches[0].clientX; ty = e.touches[0].clientY; tgt = e.target;
-  }, { passive: true });
-  document.addEventListener('touchend', e => {
-    if (document.getElementById('modal-backdrop')?.style.display !== 'none') return;
-    if (STATE.screen === 'mentor') return;
-    if (tgt && tgt.closest('.h-scroll,[style*="overflow-x"]')) return;
-    const dx = e.changedTouches[0].clientX - tx;
-    const dy = e.changedTouches[0].clientY - ty;
-    if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2.5) {
-      const order = ['home', 'learn', 'trade', 'journal'];
-      const cur = order.indexOf(STATE.screen);
-      if (cur !== -1) {
-        if (dx < 0 && cur < order.length - 1) navigate(order[cur + 1]);
-        else if (dx > 0 && cur > 0) navigate(order[cur - 1]);
-      }
-    }
-  }, { passive: true });
-})();
+/* Swipe handled in state.js */
 
 /* ══ PREVENT DOUBLE TAP ZOOM ══ */
 let _lt = 0;
