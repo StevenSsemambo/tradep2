@@ -60,13 +60,13 @@ function haptic(ms = 40) {
    ═══════════════════════════════════════════════════════════ */
 function renderTrade() {
   /* MT5-style colour palette — dark green/black charting environment */
-  return `<div id="mt5-wrap" style="display:flex;flex-direction:column;height:calc(100vh - var(--total-nav));background:#131722;overflow:hidden;color:#D1D4DC">
+  return `<div id="mt5-wrap" style="display:flex;flex-direction:column;height:calc(100dvh - var(--total-nav,62px) - env(safe-area-inset-bottom,0px));background:#1E222D;overflow:hidden;color:#D1D4DC;max-height:calc(100dvh - var(--total-nav,62px))">
 
     <!-- ══ HEADER BAR ══ -->
-    <div style="flex-shrink:0;padding:6px 8px;border-bottom:1px solid #1E2130;display:flex;align-items:center;gap:6px;background:#1A1D29">
+    <div style="flex-shrink:0;padding:6px 8px;border-bottom:1px solid #1E2130;display:flex;align-items:center;gap:6px;background:#262B3E">
       <!-- Pair -->
       <select id="tp-pair" onchange="terminalChangePair(this.value)"
-        style="background:#0F111A;border:1px solid #2A2E3D;border-radius:4px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#D1D4DC;cursor:pointer;flex-shrink:0;min-width:88px">
+        style="background:#1C1F2B;border:1px solid #363A4A;border-radius:4px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#D1D4DC;cursor:pointer;flex-shrink:0;min-width:88px">
         ${TRADE_PAIRS.map(p=>`<option value="${p}" ${p===_simCurrentPair?'selected':''}>${p}</option>`).join('')}
       </select>
 
@@ -78,7 +78,7 @@ function renderTrade() {
         </div>
         <div style="display:flex;align-items:center;gap:4px">
           <span style="width:6px;height:6px;border-radius:50%;background:#26A69A;display:inline-block;animation:pulse 2s ease infinite"></span>
-          <span style="font-size:9px;color:#5D6577;font-family:monospace">SIM · ${new Date().toUTCString().split(' ')[4]} UTC</span>
+          <span style="font-size:9px;color:#787B86;font-family:monospace">SIM · ${new Date().toUTCString().split(' ')[4]} UTC</span>
         </div>
       </div>
 
@@ -86,7 +86,7 @@ function renderTrade() {
       <div style="display:flex;gap:2px;flex-shrink:0">
         ${['M1','M5','M15','H1','H4','D1'].map(tf=>`
           <button onclick="terminalSetTF('${tf}')" id="tf-${tf}"
-            style="padding:4px 7px;border-radius:3px;font-size:10px;font-weight:700;font-family:monospace;cursor:pointer;transition:all .1s;border:1px solid ${_chartTF===tf?'#26A69A':'#2A2E3D'};background:${_chartTF===tf?'#26A69A22':'#0F111A'};color:${_chartTF===tf?'#26A69A':'#5D6577'}">
+            style="padding:4px 7px;border-radius:3px;font-size:10px;font-weight:700;font-family:monospace;cursor:pointer;transition:all .1s;border:1px solid ${_chartTF===tf?'#2962FF':'#363A4A'};background:${_chartTF===tf?'#2962FF':'#1C1F2B'};color:${_chartTF===tf?'#fff':'#787B86'}">
             ${tf}
           </button>`).join('')}
       </div>
@@ -98,7 +98,7 @@ function renderTrade() {
         <button id="draw-trend-btn" onclick="toggleDrawTool('trendline')" title="Trendline"
           style="padding:4px 7px;border-radius:3px;font-size:12px;cursor:pointer;transition:all .1s;border:1px solid ${_drawMode==='trendline'?'#F0B90B':'#2A2E3D'};background:${_drawMode==='trendline'?'#F0B90B22':'#0F111A'};color:${_drawMode==='trendline'?'#F0B90B':'#5D6577'}">/</button>
         <button onclick="clearDrawLines()" title="Clear drawings"
-          style="padding:4px 7px;border-radius:3px;font-size:10px;cursor:pointer;border:1px solid #2A2E3D;background:#0F111A;color:#5D6577">✕</button>
+          style="padding:4px 7px;border-radius:3px;font-size:10px;cursor:pointer;border:1px solid #363A4A;background:#1C1F2B;color:#787B86">✕</button>
       </div>
     </div>
 
@@ -116,28 +116,28 @@ function renderTrade() {
       </div>
 
       <!-- Current price label (right edge) -->
-      <div id="price-line-label" style="position:absolute;right:0;font-family:monospace;font-size:10px;padding:2px 5px;border-radius:2px 0 0 2px;pointer-events:none;background:#26A69A;color:#131722;font-weight:700"></div>
+      <div id="price-line-label" style="position:absolute;right:0;font-family:monospace;font-size:10px;padding:2px 5px;border-radius:2px 0 0 2px;pointer-events:none;background:#2962FF;color:#ffffff;font-weight:700"></div>
 
       <!-- OHLCV crosshair info bar -->
-      <div id="crosshair-info" style="position:absolute;top:0;left:0;right:0;background:rgba(19,23,34,0.9);padding:3px 8px;font-size:10px;font-family:monospace;color:#9598A1;display:none;pointer-events:none;border-bottom:1px solid #1E2130"></div>
+      <div id="crosshair-info" style="position:absolute;top:0;left:0;right:0;background:rgba(19,23,34,0.9);padding:3px 8px;font-size:10px;font-family:monospace;color:#B2B5BE;display:none;pointer-events:none;border-bottom:1px solid #1E2130"></div>
     </div>
 
     <!-- ══ RSI SUB-CHART ══ -->
-    <div id="rsi-panel" style="flex-shrink:0;height:68px;border-top:1px solid #1E2130;background:#131722;display:${_chartIndicators.rsi?'block':'none'}">
+    <div id="rsi-panel" style="flex-shrink:0;height:68px;border-top:1px solid #1E2130;background:#1E222D;display:${_chartIndicators.rsi?'block':'none'}">
       <canvas id="rsi-chart" style="width:100%;height:68px;display:block"></canvas>
     </div>
 
     <!-- ══ MACD SUB-CHART ══ -->
-    <div id="macd-panel" style="flex-shrink:0;height:68px;border-top:1px solid #1E2130;background:#131722;display:${_chartIndicators.macd?'block':'none'}">
+    <div id="macd-panel" style="flex-shrink:0;height:68px;border-top:1px solid #1E2130;background:#1E222D;display:${_chartIndicators.macd?'block':'none'}">
       <canvas id="macd-chart" style="width:100%;height:68px;display:block"></canvas>
     </div>
 
     <!-- ══ BOTTOM CONTROLS ══ -->
-    <div style="flex-shrink:0;background:#1A1D29;border-top:1px solid #1E2130">
+    <div style="flex-shrink:0;background:#262B3E;border-top:1px solid #1E2130">
 
       <!-- Indicator row -->
       <div style="display:flex;gap:3px;padding:5px 8px;border-bottom:1px solid #1E2130;overflow-x:auto;scrollbar-width:none;align-items:center">
-        <span style="font-size:9px;color:#5D6577;font-family:monospace;flex-shrink:0">IND:</span>
+        <span style="font-size:9px;color:#787B86;font-family:monospace;flex-shrink:0">IND:</span>
         ${[
           {key:'ema20', label:'EMA20', col:'#2196F3'},
           {key:'ema50', label:'EMA50', col:'#9C27B0'},
@@ -152,8 +152,8 @@ function renderTrade() {
             style="flex-shrink:0;padding:2px 7px;border-radius:2px;font-size:9px;font-weight:700;font-family:monospace;cursor:pointer;transition:all .12s;border:1px solid ${_chartIndicators[ind.key]?ind.col:'#2A2E3D'};background:${_chartIndicators[ind.key]?ind.col+'28':'transparent'};color:${_chartIndicators[ind.key]?ind.col:'#5D6577'}">
             ${ind.label}
           </button>`).join('')}
-        <button onclick="terminalResetZoom()" style="flex-shrink:0;padding:2px 7px;border-radius:2px;font-size:9px;font-family:monospace;cursor:pointer;border:1px solid #2A2E3D;background:transparent;color:#5D6577;margin-left:3px">⊞ Fit</button>
-        <button onclick="terminalScreenshot()" style="flex-shrink:0;padding:2px 7px;border-radius:2px;font-size:9px;font-family:monospace;cursor:pointer;border:1px solid #2A2E3D;background:transparent;color:#5D6577">📷</button>
+        <button onclick="terminalResetZoom()" style="flex-shrink:0;padding:2px 7px;border-radius:2px;font-size:9px;font-family:monospace;cursor:pointer;border:1px solid #363A4A;background:transparent;color:#787B86;margin-left:3px">⊞ Fit</button>
+        <button onclick="terminalScreenshot()" style="flex-shrink:0;padding:2px 7px;border-radius:2px;font-size:9px;font-family:monospace;cursor:pointer;border:1px solid #363A4A;background:transparent;color:#787B86">📷</button>
       </div>
 
       <!-- Trade controls row -->
@@ -168,20 +168,20 @@ function renderTrade() {
             <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
               <span style="font-size:8px;color:${f.color||'#5D6577'};font-family:monospace;font-weight:700;letter-spacing:.5px">${f.label}</span>
               ${f.type === 'select' ? `
-                <select id="${f.id}" style="background:#0F111A;border:1px solid #2A2E3D;border-radius:3px;padding:3px 5px;font-size:11px;color:#D1D4DC;font-family:monospace;width:58px">
+                <select id="${f.id}" style="background:#1C1F2B;border:1px solid #363A4A;border-radius:3px;padding:3px 5px;font-size:11px;color:#D1D4DC;font-family:monospace;width:58px">
                   ${f.opts.map(o=>`<option ${o===f.sel?'selected':''}>${o}</option>`).join('')}
                 </select>` : `
                 <input id="${f.id}" type="number" value="${f.val}" min="5" max="${f.id==='tp-sl'?500:1000}"
-                  style="background:#0F111A;border:1px solid ${f.color}44;border-radius:3px;padding:3px 5px;font-size:11px;color:#D1D4DC;font-family:monospace;width:48px"
+                  style="background:#1C1F2B;border:1px solid ${f.color}44;border-radius:3px;padding:3px 5px;font-size:11px;color:#D1D4DC;font-family:monospace;width:48px"
                   oninput="updateRiskCalc()">`}
             </div>`).join('')}
           <div style="display:flex;flex-direction:column;gap:2px;align-items:center;flex-shrink:0">
-            <span style="font-size:8px;color:#5D6577;font-family:monospace;font-weight:700">R:R</span>
+            <span style="font-size:8px;color:#787B86;font-family:monospace;font-weight:700">R:R</span>
             <span id="risk-reward-display" style="font-size:12px;color:#FFC107;font-family:monospace;font-weight:700;min-width:30px;text-align:center">2:1</span>
           </div>
           <!-- Risk % indicator -->
           <div style="display:flex;flex-direction:column;gap:2px;align-items:center;flex-shrink:0">
-            <span style="font-size:8px;color:#5D6577;font-family:monospace;font-weight:700">RISK</span>
+            <span style="font-size:8px;color:#787B86;font-family:monospace;font-weight:700">RISK</span>
             <span id="risk-pct-display" style="font-size:10px;color:#9E9E9E;font-family:monospace">1.0%</span>
           </div>
         </div>
@@ -189,7 +189,7 @@ function renderTrade() {
         <!-- BUY / SELL / CLOSE -->
         ${_simOpenTrade ? `
           <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-            <span id="live-pnl" style="font-size:12px;font-family:monospace;color:#9598A1;font-weight:700">$0.00</span>
+            <span id="live-pnl" style="font-size:12px;font-family:monospace;color:#B2B5BE;font-weight:700">$0.00</span>
             <button onclick="haptic(50);closeSimTrade('Manual')"
               style="padding:6px 12px;background:#C62828;border:1px solid #EF5350;border-radius:3px;color:#fff;font-family:monospace;font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap;min-width:70px">
               ■ CLOSE
@@ -197,7 +197,7 @@ function renderTrade() {
           </div>` : `
           <div style="display:flex;gap:5px">
             <button onclick="haptic(35);openSimTrade('BUY')"
-              style="padding:7px 12px;background:#1B5E2022;border:2px solid #26A69A;border-radius:3px;color:#26A69A;font-family:monospace;font-weight:800;font-size:12px;cursor:pointer;min-width:58px;text-align:center;transition:all .1s"
+              style="padding:7px 12px;background:#1B5E2022;border:2px solid #26A69A;border-radius:3px;color:#26A69A;background:#1B5E2022;font-family:monospace;font-weight:800;font-size:12px;cursor:pointer;min-width:58px;text-align:center;transition:all .1s"
               ontouchstart="this.style.background='#26A69A33'" ontouchend="this.style.background='#1B5E2022'">
               ▲ BUY<br><span style="font-size:9px;opacity:.75">${(_simCurrentPrice+(_simCurrentPair.includes('JPY')?0.003:0.00012)).toFixed(_simCurrentPair.includes('JPY')?3:4)}</span>
             </button>
@@ -211,22 +211,22 @@ function renderTrade() {
 
       <!-- Open trade info bar -->
       ${_simOpenTrade ? `
-      <div style="padding:3px 8px 5px;display:flex;gap:8px;font-size:10px;font-family:monospace;border-top:1px solid #1E2130;background:#0F111A;overflow-x:auto;scrollbar-width:none;white-space:nowrap">
+      <div style="padding:3px 8px 5px;display:flex;gap:8px;font-size:10px;font-family:monospace;border-top:1px solid #1E2130;background:#1C1F2B;overflow-x:auto;scrollbar-width:none;white-space:nowrap">
         <span style="color:${_simOpenTrade.dir==='BUY'?'#26A69A':'#EF5350'};font-weight:700">${_simOpenTrade.dir==='BUY'?'▲':'▼'} ${_simCurrentPair} ${_simOpenTrade.lots}</span>
-        <span style="color:#5D6577">@</span>
+        <span style="color:#787B86">@</span>
         <span style="color:#D1D4DC">${_simOpenTrade.entry.toFixed(4)}</span>
-        <span style="color:#5D6577">SL:</span><span style="color:#EF5350">${_simOpenTrade.sl.toFixed(4)}</span>
-        <span style="color:#5D6577">TP:</span><span style="color:#26A69A">${_simOpenTrade.tp.toFixed(4)}</span>
-        <span id="open-live-pnl" style="color:#9598A1;margin-left:auto">$0.00</span>
+        <span style="color:#787B86">SL:</span><span style="color:#EF5350">${_simOpenTrade.sl.toFixed(4)}</span>
+        <span style="color:#787B86">TP:</span><span style="color:#26A69A">${_simOpenTrade.tp.toFixed(4)}</span>
+        <span id="open-live-pnl" style="color:#B2B5BE;margin-left:auto">$0.00</span>
       </div>` : ''}
 
       <!-- Account equity bar -->
-      <div style="display:flex;gap:12px;padding:3px 8px 5px;border-top:1px solid #1E2130;font-size:9px;font-family:monospace;color:#5D6577">
+      <div style="display:flex;gap:12px;padding:3px 8px 5px;border-top:1px solid #1E2130;font-size:9px;font-family:monospace;color:#787B86">
         <span>Balance: <strong style="color:#D1D4DC">${fmtCurrency(STATE.simBalance)}</strong></span>
         <span>Equity: <strong id="term-equity" style="color:${STATE.simEquity>=STATE.simBalance?'#26A69A':'#EF5350'}">${fmtCurrency(STATE.simEquity)}</strong></span>
         <span>P&L: <strong style="color:${STATE.simEquity-10000>=0?'#26A69A':'#EF5350'}">${STATE.simEquity-10000>=0?'+':''}${fmtCurrency(STATE.simEquity-10000)}</strong></span>
         <button onclick="_historyOpen=!_historyOpen;renderScreen('trade');setTimeout(initTerminal,60)"
-          style="margin-left:auto;background:none;border:none;color:#5D6577;cursor:pointer;font-family:monospace;font-size:9px">
+          style="margin-left:auto;background:none;border:none;color:#787B86;cursor:pointer;font-family:monospace;font-size:9px">
           ${_historyOpen?'▼':'▲'} History (${_simTodayTrades.length})
         </button>
       </div>
@@ -235,20 +235,20 @@ function renderTrade() {
       ${_historyOpen ? `
       <div style="max-height:140px;overflow-y:auto;border-top:1px solid #1E2130;background:#0A0D14">
         ${_simTodayTrades.length === 0 ?
-          `<div style="padding:12px 8px;text-align:center;font-size:10px;font-family:monospace;color:#5D6577">No closed trades this session</div>` :
+          `<div style="padding:12px 8px;text-align:center;font-size:10px;font-family:monospace;color:#787B86">No closed trades this session</div>` :
           `<table style="width:100%;font-size:9px;font-family:monospace;border-collapse:collapse">
-            <tr style="color:#5D6577;border-bottom:1px solid #1E2130">
+            <tr style="color:#787B86;border-bottom:1px solid #1E2130">
               <td style="padding:3px 6px">Pair</td><td>Dir</td><td>Entry</td><td>Exit</td><td>Lots</td><td style="color:#FFC107">P&L</td><td>Reason</td>
             </tr>
             ${_simTodayTrades.slice().reverse().map(t=>`
               <tr style="border-bottom:1px solid #1A1D2A">
                 <td style="padding:3px 6px;color:#D1D4DC">${t.pair}</td>
                 <td style="color:${t.dir==='BUY'?'#26A69A':'#EF5350'}">${t.dir}</td>
-                <td style="color:#9598A1">${t.entry}</td>
-                <td style="color:#9598A1">${t.exit}</td>
-                <td style="color:#9598A1">${t.lots}</td>
+                <td style="color:#B2B5BE">${t.entry}</td>
+                <td style="color:#B2B5BE">${t.exit}</td>
+                <td style="color:#B2B5BE">${t.lots}</td>
                 <td style="color:${t.pnl>=0?'#26A69A':'#EF5350'};font-weight:700">${t.pnl>=0?'+':''}$${Math.abs(t.pnl).toFixed(2)}</td>
-                <td style="color:#5D6577">${t.reason}</td>
+                <td style="color:#787B86">${t.reason}</td>
               </tr>`).join('')}
           </table>`}
       </div>` : ''}
@@ -299,7 +299,8 @@ function initTerminal() {
       const cds = getChartCandles();
       const visCount = Math.max(10, Math.floor(50 * _chartZoom));
       const cw  = canvas.width / visCount;
-      const newOff = _chartDragStartOff + Math.round(-dx / cw);
+      // Drag RIGHT = see older candles (past). Drag LEFT = see newer candles.
+      const newOff = _chartDragStartOff + Math.round(dx / cw);
       _chartOffset = Math.max(0, Math.min(Math.max(0, cds.length - visCount), newOff));
       renderChart();
     } else {
@@ -347,7 +348,8 @@ function onChartTouchMove(e) {
     const cds = getChartCandles();
     const visCount = Math.max(10, Math.floor(50 * _chartZoom));
     const cw = canvas.width / visCount;
-    const newOff = _touchStartOff + Math.round(-dx / cw);
+    // Drag RIGHT = see older candles. MT5 convention.
+    const newOff = _touchStartOff + Math.round(dx / cw);
     _chartOffset = Math.max(0, Math.min(Math.max(0, cds.length - visCount), newOff));
     renderChart();
   } else if (e.touches.length === 2) {
@@ -494,9 +496,9 @@ function terminalSetTF(tf) {
     const btn = document.getElementById('tf-' + t);
     if (!btn) return;
     const active = t === tf;
-    btn.style.border     = `1px solid ${active ? '#26A69A' : '#2A2E3D'}`;
-    btn.style.background = active ? '#26A69A22' : '#0F111A';
-    btn.style.color      = active ? '#26A69A'   : '#5D6577';
+    btn.style.border     = `1px solid ${active ? '#2962FF' : '#363A4A'}`;
+    btn.style.background = active ? '#2962FF' : '#1C1F2B';
+    btn.style.color      = active ? '#ffffff'   : '#787B86';
   });
   renderChart();
 }
@@ -533,8 +535,10 @@ function terminalScreenshot() {
 
 /* ── PRICE TICK ──────────────────────────────────────────── */
 function terminalPriceTick() {
-  const vol = getSessionVol(_chartTF) * 0.25;
-  _simCurrentPrice = Math.max(_simCurrentPrice + (Math.random() - 0.49) * vol, 0.01);
+  // Smooth Brownian motion - small realistic tick movements
+  const vol = getSessionVol(_chartTF) * 0.08;
+  const drift = (Math.random() - 0.499) * vol;
+  _simCurrentPrice = Math.max(_simCurrentPrice + drift, 0.01);
 
   const key = _simCurrentPair + '_' + _chartTF;
   const candles = _chartCandles[key];
@@ -545,11 +549,21 @@ function terminalPriceTick() {
     last.low    = Math.min(last.low,  _simCurrentPrice);
     last.bull   = last.close >= last.open;
     last.volume = (last.volume || 1000) + Math.floor(Math.random() * 60);
-    if (Math.random() < 0.04) {
-      candles.push(generateTFCandles(_simCurrentPrice, _chartTF).pop());
+    if (Math.random() < 0.012) {
+      // Create new candle from current price with realistic body
+      const newVol = getSessionVol(_chartTF) * 1.5;
+      const c = candles[candles.length - 1];
+      const newOpen  = _simCurrentPrice;
+      const newClose = _simCurrentPrice + (Math.random() - 0.48) * newVol;
+      const newHigh  = Math.max(newOpen, newClose) + Math.random() * newVol * 0.4;
+      const newLow   = Math.min(newOpen, newClose) - Math.random() * newVol * 0.4;
+      candles.push({
+        open: newOpen, high: newHigh, low: newLow, close: newClose,
+        bull: newClose >= newOpen, volume: Math.floor(800 + Math.random()*3000),
+        time: Date.now()
+      });
       if (candles.length > TF_CANDLE_COUNT[_chartTF] + 30) {
         candles.shift();
-        // Compensate offset so viewport doesn't jump
         if (_chartOffset > 0) _chartOffset = Math.max(0, _chartOffset - 1);
       }
     }
@@ -683,7 +697,7 @@ function renderChart() {
   const w = canvas.width, h = canvas.height;
 
   /* MT5 dark background */
-  ctx.fillStyle = '#131722';
+  ctx.fillStyle = '#1E222D';
   ctx.fillRect(0, 0, w, h);
 
   /* Visible window */
@@ -921,7 +935,7 @@ function _renderRSI(vis, startIdx, endIdx) {
   if (!rc) return;
   const rctx = rc.getContext('2d');
   const rsi  = calcRSI(vis);
-  rctx.fillStyle = '#131722'; rctx.fillRect(0, 0, rc.width, rc.height);
+  rctx.fillStyle = '#1E222D'; rctx.fillRect(0, 0, rc.width, rc.height);
   [20, 30, 50, 70, 80].forEach(l => {
     const y = (1 - l / 100) * rc.height;
     rctx.strokeStyle = l === 30 || l === 70 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)';
@@ -950,7 +964,7 @@ function _renderMACD(vis) {
   const mc = document.getElementById('macd-chart');
   if (!mc) return;
   const mctx = mc.getContext('2d');
-  mctx.fillStyle = '#131722'; mctx.fillRect(0, 0, mc.width, mc.height);
+  mctx.fillStyle = '#1E222D'; mctx.fillRect(0, 0, mc.width, mc.height);
   const ema12  = calcEMA(vis, 12);
   const ema26  = calcEMA(vis, 26);
   const macdL  = ema12.map((v, i) => v && ema26[i] ? v - ema26[i] : null);
