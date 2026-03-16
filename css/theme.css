@@ -38,13 +38,13 @@
   --bdr2:       rgba(255,255,255,0.08);
   --bdr3:       rgba(255,255,255,0.04);
 
-  /* Backgrounds — deep indigo slate, NOT generic black */
-  --bg:    #0D1421;
-  --bg2:   #111B2E;
-  --bg3:   #172338;
-  --bg4:   #1D2B42;
-  --bg5:   #23334C;
-  --glass: rgba(13,20,33,0.96);
+  /* Backgrounds — deep ocean blue. Clearly BLUE, not black. */
+  --bg:    #0A1628;
+  --bg2:   #0D1F38;
+  --bg3:   #112848;
+  --bg4:   #163158;
+  --bg5:   #1B3A68;
+  --glass: rgba(10,22,40,0.95);
 
   /* Text — crisp on deep teal-slate */
   --txt:   #ECF3FC;
