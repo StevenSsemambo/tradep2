@@ -11,30 +11,23 @@ input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
 /* BASE */
-body{
-  font-family:var(--body,'DM Sans',sans-serif);
-  background:var(--bg);
-  color:var(--txt);
-  font-size:14px;
-  line-height:1.5;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  overflow:hidden;
-  height:100vh;
-  height:100dvh;
-}
-/* ── BACKGROUND VISUAL SYSTEM ─────────────────────────────────
-   Deep ocean blue with strong visible texture:
-   1. body: deep ocean blue (#0A1628)  — clearly BLUE not black
-   2. ::before: bright dot grid — clearly visible, gives depth
-   3. ::after: 3-point gradient glow — teal, blue, indigo
-   Body background also has a subtle diagonal gradient so it's
-   never a flat solid — it ALWAYS reads as distinctive.
+
+/* ── BACKGROUND: Light Cloudy Sky Blue ─────────────────────────
+   Calm, bright, airy — like a clear morning sky.
+   NOT dark. NOT black. Premium and inviting.
    ──────────────────────────────────────────────────────────── */
 body{
-  /* Override: add diagonal gradient on top of the solid --bg color */
   background:
-    linear-gradient(135deg, #051428 0%, #0A1628 40%, #0D1F38 70%, #0A1A30 100%);
+    linear-gradient(170deg,
+      #C8E6F5 0%,
+      #D6EEFA 18%,
+      #E2F4FF 35%,
+      #EBF7FF 50%,
+      #D8EEFF 68%,
+      #C5E4F8 85%,
+      #B8DAF5 100%
+    );
+  color: #1A2E44;
 }
 body::before{
   content:'';
@@ -42,9 +35,10 @@ body::before{
   inset:0;
   pointer-events:none;
   z-index:0;
-  /* Clearly visible dot grid — premium fintech look */
-  background-image: radial-gradient(circle, rgba(0,180,255,0.18) 1px, transparent 1px);
-  background-size:24px 24px;
+  background:
+    radial-gradient(ellipse 80% 40% at 20% 20%, rgba(255,255,255,0.55) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 50% at 80% 60%, rgba(255,255,255,0.40) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 90%, rgba(180,220,245,0.35) 0%, transparent 55%);
 }
 body::after{
   content:'';
@@ -52,11 +46,8 @@ body::after{
   inset:0;
   pointer-events:none;
   z-index:0;
-  /* Strong 3-point ambient glow — makes the blue pop */
-  background:
-    radial-gradient(ellipse 60% 45% at 0% 0%,   rgba(0,200,255,0.12) 0%, transparent 65%),
-    radial-gradient(ellipse 45% 40% at 100% 100%, rgba(100,60,255,0.10) 0%, transparent 65%),
-    radial-gradient(ellipse 35% 35% at 50% 0%,   rgba(0,212,184,0.07) 0%, transparent 60%);
+  background-image: radial-gradient(circle, rgba(100,160,200,0.12) 1px, transparent 1px);
+  background-size:30px 30px;
 }
 #app{position:relative;z-index:1}
 
@@ -66,7 +57,7 @@ body::after{
 
 /* BOTTOM NAV */
 #bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:540px;z-index:500;padding-bottom:env(safe-area-inset-bottom,0px)}
-#bottom-nav::before{content:'';position:absolute;inset:0;background:var(--glass);backdrop-filter:blur(20px) saturate(200%);-webkit-backdrop-filter:blur(20px) saturate(200%);border-top:1px solid var(--bdr2)}
+#bottom-nav::before{content:'';position:absolute;inset:0;background:rgba(200,230,248,0.88);backdrop-filter:blur(20px) saturate(200%);-webkit-backdrop-filter:blur(20px) saturate(200%);border-top:1px solid var(--bdr2)}
 .nav-grid{position:relative;display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav-h,62px);padding:0 2px}
 .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--txt3);transition:color .2s;padding:6px 0;position:relative;-webkit-tap-highlight-color:transparent;border:none;background:none}
 .nav-item.active{color:var(--accent)}
@@ -86,7 +77,7 @@ body::after{
 .ticker-item{display:inline-flex;align-items:center;gap:8px;padding:0 18px;font-family:var(--mono);font-size:11px;height:36px;border-right:1px solid var(--bdr3);white-space:nowrap;flex-shrink:0}
 
 /* CARDS */
-.card{background:rgba(11,25,48,0.80);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--bdr2);border-radius:var(--r,14px);transition:border-color .2s;position:relative;overflow:hidden}
+.card{background:rgba(255,255,255,0.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 2px 12px rgba(80,140,200,0.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--bdr2);border-radius:var(--r,14px);transition:border-color .2s;position:relative;overflow:hidden}
 .card-tappable{cursor:pointer}
 .card-tappable:active{transform:scale(.985);border-color:var(--bdr)}
 .card-gold,.card-accent{background:linear-gradient(135deg,var(--bg2),var(--accent-bg));border-color:var(--bdr)}
@@ -137,7 +128,7 @@ select.inp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 /* STAT GRIDS */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stat-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.stat-box{background:rgba(10,22,40,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--bdr2);border-radius:var(--rs,9px);padding:14px;text-align:center}
+.stat-box{background:rgba(255,255,255,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 1px 6px rgba(80,140,200,0.1);border:1px solid var(--bdr2);border-radius:var(--rs,9px);padding:14px;text-align:center}
 .stat-val{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
 .stat-lbl{font-size:9px;color:var(--txt3);font-family:var(--display);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-top:4px}
 
