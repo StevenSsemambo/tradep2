@@ -120,6 +120,9 @@ function renderHome() {
         </div>
       </div>
 
+      <!-- ── HOT STREAK BANNER ── -->
+      ${typeof getHotStreakLabel === 'function' && getHotStreakLabel() ? `<div class="a-fadeup" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.3);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px;font-size:13px">${getHotStreakLabel().text}</div>` : ''}
+
       <!-- ── XP BAR ── -->
       <div class="xp-wrap a-fadeup2" style="margin-bottom:12px">
         <div class="xp-row">
@@ -179,6 +182,10 @@ function renderHome() {
           {icon:'🌍',label:'Pairs',     sub:'Deep profiles',                     action:'pairprofiles'},
           {icon:'🧬',label:'DNA',       sub:'Your profile',                      action:'dna'},
           {icon:'🏆',label:'Challenges',sub:'18 goals',                          action:'challenges'},
+          {icon:'⚡',label:'Speed Round',sub:'60s blitz',                        action:'speedround'},
+          {icon:'✅',label:'Checklist', sub:'Pre-trade',                          action:'checklist'},
+          {icon:'📉',label:'Risk Ruin', sub:'Calculator',                         action:'riskofRuin'},
+          {icon:'🌐',label:'Correlation',sub:'Pair matrix',                       action:'correlation'},
         ].map(a => `
           <div class="qa-card" ontouchstart="this.style.transform='scale(.92)';this.style.borderColor='var(--accent)';this.style.background='var(--accent-bg)'"
                ontouchend="this.style.transform='';this.style.borderColor='';this.style.background='';navigate('${a.action}')"
