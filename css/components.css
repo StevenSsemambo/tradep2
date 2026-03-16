@@ -11,41 +11,41 @@ input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
 /* BASE */
-
-/* ── BACKGROUND: Tropical Deep Ocean (with hints of teal) ───────
-   Deep, calming ocean blues with subtle teal undertones
-   Immersive and professional — like the deep tropical sea
-   ════════════════════════════════════════════════════════════════ */
 body{
-  background:
-    linear-gradient(170deg,
-      #0B2A3F 0%,      /* Deep tropical ocean */
-      #123B4F 25%,      /* Ocean depth with teal hint */
-      #1A4F63 50%,      /* Vibrant ocean teal */
-      #124256 75%,      /* Deeper tropical waters */
-      #0A3447 100%      /* Abyss floor */
-    );
-  color: #E1F0FA;       /* Light text for dark background */
+  font-family:var(--body,'DM Sans',sans-serif);
+  background:var(--bg);
+  color:var(--txt);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow:hidden;
+  height:100vh;
+  height:100dvh;
 }
+/* Subtle grid texture overlay — gives depth without being distracting */
 body::before{
   content:'';
   position:fixed;
   inset:0;
   pointer-events:none;
   z-index:0;
-  background-image: radial-gradient(circle, rgba(0, 200, 255, 0.1) 1px, transparent 1px);
-  background-size:32px 32px;
+  background-image:
+    linear-gradient(rgba(0,212,184,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,184,0.025) 1px, transparent 1px);
+  background-size:48px 48px;
 }
+/* Ambient glow in top-left — trading console vibe */
 body::after{
   content:'';
   position:fixed;
-  inset:0;
+  top:-120px;
+  left:-80px;
+  width:400px;
+  height:400px;
   pointer-events:none;
   z-index:0;
-  background:
-    radial-gradient(ellipse 70% 50% at 0% 0%,   rgba(0, 210, 255, 0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 100%, rgba(0, 160, 220, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 50% 0%,   rgba(0, 220, 200, 0.06) 0%, transparent 65%);
+  background:radial-gradient(circle, rgba(0,212,184,0.06) 0%, transparent 65%);
 }
 #app{position:relative;z-index:1}
 
@@ -55,7 +55,7 @@ body::after{
 
 /* BOTTOM NAV */
 #bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:540px;z-index:500;padding-bottom:env(safe-area-inset-bottom,0px)}
-#bottom-nav::before{content:'';position:absolute;inset:0;background:rgba(10, 42, 58, 0.88);backdrop-filter:blur(20px) saturate(200%);-webkit-backdrop-filter:blur(20px) saturate(200%);border-top:1px solid var(--bdr2)}
+#bottom-nav::before{content:'';position:absolute;inset:0;background:var(--glass);backdrop-filter:blur(20px) saturate(200%);-webkit-backdrop-filter:blur(20px) saturate(200%);border-top:1px solid var(--bdr2)}
 .nav-grid{position:relative;display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav-h,62px);padding:0 2px}
 .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--txt3);transition:color .2s;padding:6px 0;position:relative;-webkit-tap-highlight-color:transparent;border:none;background:none}
 .nav-item.active{color:var(--accent)}
@@ -68,14 +68,14 @@ body::after{
 .nav-label{font-size:9px;font-family:var(--display);font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 
 /* TICKER — HORIZONTAL MARQUEE */
-.ticker-outer{width:100%;overflow:hidden;height:36px;background:linear-gradient(135deg,rgba(0,212,184,0.08),rgba(0,212,184,0.12));border-bottom:1px solid var(--bdr3);display:flex;align-items:center;flex-shrink:0}
+.ticker-outer{width:100%;overflow:hidden;height:36px;background:linear-gradient(135deg,rgba(0,212,184,0.03),rgba(0,212,184,0.06));border-bottom:1px solid var(--bdr3);display:flex;align-items:center;flex-shrink:0}
 .ticker-inner{display:inline-flex;flex-direction:row;flex-wrap:nowrap;animation:tickerMove 100s linear infinite;will-change:transform}
 .ticker-inner:hover{animation-play-state:paused}
 @keyframes tickerMove{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .ticker-item{display:inline-flex;align-items:center;gap:8px;padding:0 18px;font-family:var(--mono);font-size:11px;height:36px;border-right:1px solid var(--bdr3);white-space:nowrap;flex-shrink:0}
 
 /* CARDS */
-.card{background:rgba(10, 42, 58, 0.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 2px 12px rgba(0, 40, 60, 0.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--bdr2);border-radius:var(--r,14px);transition:border-color .2s;position:relative;overflow:hidden}
+.card{background:var(--bg2);border:1px solid var(--bdr2);border-radius:var(--r,14px);transition:border-color .2s;position:relative;overflow:hidden}
 .card-tappable{cursor:pointer}
 .card-tappable:active{transform:scale(.985);border-color:var(--bdr)}
 .card-gold,.card-accent{background:linear-gradient(135deg,var(--bg2),var(--accent-bg));border-color:var(--bdr)}
@@ -126,7 +126,7 @@ select.inp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 /* STAT GRIDS */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stat-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.stat-box{background:rgba(10, 42, 58, 0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 1px 6px rgba(0, 40, 60, 0.2);border:1px solid var(--bdr2);border-radius:var(--rs,9px);padding:14px;text-align:center}
+.stat-box{background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--rs,9px);padding:14px;text-align:center}
 .stat-val{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
 .stat-lbl{font-size:9px;color:var(--txt3);font-family:var(--display);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-top:4px}
 
