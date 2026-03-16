@@ -199,12 +199,12 @@ function renderHome() {
       <!-- ── MARKET SNAPSHOT ── -->
       <div class="section-lbl a-fadeup5" style="margin-top:14px">Market Snapshot</div>
       <div class="card a-fadeup5" style="padding:0;overflow:hidden;margin-bottom:14px">
-        ${MARKET_DATA.tickers.slice(0, 10).map((t, i) => {
+        ${MARKET_DATA.tickers.slice(0, 3).map((t, i) => {
           const up = t.change >= 0;
           const price = t.price > 100
             ? t.price.toLocaleString('en-US', {minimumFractionDigits:2})
             : t.price.toFixed(4);
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;${i<9?'border-bottom:1px solid var(--bdr2)':''}"
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;${i<2?'border-bottom:1px solid var(--bdr2)':''}"
             class="card-tappable" onclick="showToast('${t.pair}: ${price} (${up?'+':''}${t.pct.toFixed(2)}%)')">
             <div style="font-weight:700;font-size:13px;font-family:var(--display)">${t.pair}</div>
             <div style="text-align:right">
@@ -213,6 +213,17 @@ function renderHome() {
             </div>
           </div>`;
         }).join('')}
+      </div>
+    </div>
+
+      <!-- ── DAILY WISDOM (bottom) ── -->
+      <div class="a-fadeup5" style="margin-bottom:20px">
+        <div class="section-lbl">Daily Wisdom</div>
+        <div style="background:linear-gradient(135deg,var(--bg2),var(--accent-bg));border:1px solid var(--bdr);border-radius:var(--r);padding:18px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,184,0.08),transparent 70%)"></div>
+          <div style="font-size:13px;font-style:italic;line-height:1.7;color:var(--txt);margin-bottom:12px">"${DAILY_TIPS[new Date().getDate() % DAILY_TIPS.length].tip}"</div>
+          <div style="font-size:11px;color:var(--accent);font-family:var(--display);font-weight:700;letter-spacing:.5px">— ${DAILY_TIPS[new Date().getDate() % DAILY_TIPS.length].by}</div>
+        </div>
       </div>
     </div>
   `;
@@ -232,13 +243,7 @@ function renderSwipeCards(insight) {
       </div>
       <span class="pill pill-accent" onclick="navigate('${insight.action}')" style="cursor:pointer;flex-shrink:0">${insight.cta} →</span>
     </div>`,
-    /* Card 1: Daily wisdom */
-    `<div style="padding:16px">
-      <div style="font-size:10px;color:var(--accent);font-family:var(--display);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">💡 Daily Wisdom</div>
-      <div style="font-size:14px;font-style:italic;line-height:1.6;color:var(--txt);margin-bottom:10px">"${tip.tip}"</div>
-      <div style="font-size:12px;color:var(--accent);font-family:var(--display);font-weight:700">— ${tip.by}</div>
-    </div>`,
-    /* Card 2: Session status */
+    /* Card 1: Session status */
     `<div style="padding:14px">
       <div style="font-size:10px;color:var(--accent);font-family:var(--display);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">⏰ Today's Session</div>
       ${renderSessionSummary()}
