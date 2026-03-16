@@ -23,29 +23,33 @@ body{
   height:100vh;
   height:100dvh;
 }
-/* Subtle grid texture overlay — gives depth without being distracting */
+/* ── BACKGROUND VISUAL SYSTEM ─────────────────────────────────
+   A distinctive layered background that looks premium, not generic:
+   1. Base solid color from --bg (deep indigo-slate)
+   2. Subtle dot grid (trading terminal feel)
+   3. Two ambient glows (teal top-left, purple bottom-right)
+   ──────────────────────────────────────────────────────────── */
 body::before{
   content:'';
   position:fixed;
   inset:0;
   pointer-events:none;
   z-index:0;
-  background-image:
-    linear-gradient(rgba(0,212,184,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,212,184,0.025) 1px, transparent 1px);
-  background-size:48px 48px;
+  /* Dot grid pattern */
+  background-image: radial-gradient(rgba(0,212,184,0.12) 1px, transparent 1px);
+  background-size:28px 28px;
 }
-/* Ambient glow in top-left — trading console vibe */
 body::after{
   content:'';
   position:fixed;
-  top:-120px;
-  left:-80px;
-  width:400px;
-  height:400px;
+  inset:0;
   pointer-events:none;
   z-index:0;
-  background:radial-gradient(circle, rgba(0,212,184,0.06) 0%, transparent 65%);
+  /* Dual ambient glow: teal top-left + purple bottom-right */
+  background:
+    radial-gradient(ellipse 50% 40% at 0% 0%, rgba(0,212,184,0.09) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 35% at 100% 100%, rgba(99,102,241,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 30% at 100% 0%, rgba(0,140,255,0.05) 0%, transparent 60%);
 }
 #app{position:relative;z-index:1}
 
