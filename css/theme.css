@@ -34,23 +34,23 @@
   --gold-glow:  rgba(0,212,184,0.20);
 
   /* Borders */
-  --bdr:        rgba(80,150,220,0.30);
-  --bdr2:       rgba(80,150,220,0.15);
-  --bdr3:       rgba(80,150,220,0.08);
+  --bdr:        rgba(0,212,184,0.22);
+  --bdr2:       rgba(255,255,255,0.08);
+  --bdr3:       rgba(255,255,255,0.04);
 
-  /* Backgrounds — light cloudy sky blue. Bright, airy, premium. */
-  --bg:    #D8EEFF;
-  --bg2:   #EBF7FF;
-  --bg3:   #F4FBFF;
-  --bg4:   #FFFFFF;
-  --bg5:   #FAFCFF;
-  --glass: rgba(200,230,248,0.88);
+  /* Backgrounds — rich deep teal-slate, premium trading desk */
+  --bg:    #0A1628;
+  --bg2:   #0F1E35;
+  --bg3:   #152540;
+  --bg4:   #1B2D4D;
+  --bg5:   #213558;
+  --glass: rgba(10,22,40,0.94);
 
-  /* Text — dark on light sky blue */
-  --txt:   #0F2744;
-  --txt2:  #2D5480;
-  --txt3:  #5A7FA0;
-  --txt4:  #8AAEC8;
+  /* Text — crisp on deep teal-slate */
+  --txt:   #ECF3FC;
+  --txt2:  #90AECA;
+  --txt3:  #52718E;
+  --txt4:  #2E4A62;
 
   /* Semantic colours */
   --green:     #00D4B8;
@@ -82,7 +82,7 @@
 
 /* ══ LIGHT THEME ══ */
 [data-theme="light"] {
-  --bg:#EEF4FF; --bg2:#E2EEFF; --bg3:#D4E4FF; --bg4:#C6DAFF; --bg5:#B8D0FF;
+  --bg:#F0F6FF; --bg2:#E4EEFF; --bg3:#D8E6FF; --bg4:#CCDEFF; --bg5:#C0D6FF;
   --glass:rgba(240,246,255,0.97);
   --bdr:rgba(0,150,135,0.18); --bdr2:rgba(0,0,0,0.08); --bdr3:rgba(0,0,0,0.03);
   --txt:#0A1826; --txt2:#2A4A6A; --txt3:#5A7A9A; --txt4:#C0D0E0;
@@ -137,7 +137,7 @@
 
 /* ══ OCEAN DEEP ══ */
 [data-theme="ocean"] {
-  --bg:#010E18; --bg2:#031926; --bg3:#052434; --bg4:#072F42; --bg5:#093A50;
+  --bg:#020C14; --bg2:#041820; --bg3:#062430; --bg4:#083040; --bg5:#0A3C50;
   --bdr:rgba(0,200,255,0.15); --bdr2:rgba(0,200,255,0.06);
   --amber:#00C8FF; --amber-l:#66DDFF; --amber-d:#0077AA;
   --amber-bg:rgba(0,200,255,0.07); --amber-glow:rgba(0,200,255,0.18);
@@ -176,7 +176,7 @@
 
 /* ══ SLATE (GitHub-inspired) ══ */
 [data-theme="slate"] {
-  --bg:#0D1117; --bg2:#161B22; --bg3:#1C2128; --bg4:#22272E; --bg5:#2D333B;
+  --bg:#0D1117; --bg2:#161B22; --bg3:#21262D; --bg4:#2D333B; --bg5:#373E47;
   --glass:rgba(13,17,23,0.95);
   --bdr:rgba(74,158,255,0.15); --bdr2:rgba(74,158,255,0.07); --bdr3:rgba(74,158,255,0.03);
   --amber:#4A9EFF; --amber-l:#79C0FF; --amber-d:#1F6FEB;
