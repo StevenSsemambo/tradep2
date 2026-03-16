@@ -282,12 +282,15 @@ function el(id) { return document.getElementById(id); }
   document.addEventListener('touchend', e => {
     if (document.getElementById('modal-backdrop')?.style.display !== 'none') return;
     if (STATE.screen === 'mentor') return;
-    // Don't swipe if touch started inside a horizontal scroll container
-    if (tTarget && tTarget.closest('.h-scroll, .chat-qs, #float-suggestions, [style*="overflow-x"]')) return;
+    // Don't swipe if touch started inside any scrollable or interactive container
+    if (tTarget && tTarget.closest(
+      '.h-scroll, .chat-qs, #float-suggestions, #swipe-card-wrap, ' +
+      '[style*="overflow-x"], [style*="overflow-y:auto"], canvas, select, input, textarea'
+    )) return;
     const dx = e.changedTouches[0].clientX - tx;
     const dy = e.changedTouches[0].clientY - ty;
-    // Require stronger horizontal gesture and minimal vertical movement
-    if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2.5) {
+    // Require strong horizontal gesture: 130px minimum, must be mostly horizontal
+    if (Math.abs(dx) > 130 && Math.abs(dx) > Math.abs(dy) * 3.5) {
       const cur = NAV_ORDER.indexOf(STATE.screen);
       if (cur !== -1) {
         if (dx < 0 && cur < NAV_ORDER.length - 1) navigate(NAV_ORDER[cur + 1]);
