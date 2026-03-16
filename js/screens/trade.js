@@ -160,57 +160,58 @@ function renderTrade() {
         <button onclick="terminalScreenshot()" style="flex-shrink:0;padding:2px 7px;border-radius:2px;font-size:9px;font-family:monospace;cursor:pointer;border:1px solid #363A4A;background:transparent;color:#787B86">📷</button>
       </div>
 
-      <!-- Trade controls row -->
-      <div style="padding:5px 8px;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center">
-        <!-- Lot / SL / TP / RR -->
-        <div style="display:flex;gap:5px;align-items:flex-end;overflow:hidden">
-          ${[
-            {id:'tp-lots', label:'LOTS', type:'select', opts:['0.01','0.05','0.10','0.25','0.50','1.00'], sel:'0.10'},
-            {id:'tp-sl',   label:'SL',   type:'num',    val:'30', color:'#EF5350'},
-            {id:'tp-tp',   label:'TP',   type:'num',    val:'60', color:'#26A69A'},
-          ].map(f => `
-            <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
-              <span style="font-size:8px;color:${f.color||'#5D6577'};font-family:monospace;font-weight:700;letter-spacing:.5px">${f.label}</span>
-              ${f.type === 'select' ? `
-                <select id="${f.id}" style="background:#1C1F2B;border:1px solid #363A4A;border-radius:3px;padding:3px 5px;font-size:11px;color:#D1D4DC;font-family:monospace;width:58px">
-                  ${f.opts.map(o=>`<option ${o===f.sel?'selected':''}>${o}</option>`).join('')}
-                </select>` : `
-                <input id="${f.id}" type="number" value="${f.val}" min="5" max="${f.id==='tp-sl'?500:1000}"
-                  style="background:#1C1F2B;border:1px solid ${f.color}44;border-radius:3px;padding:3px 5px;font-size:11px;color:#D1D4DC;font-family:monospace;width:48px"
-                  oninput="updateRiskCalc()">`}
-            </div>`).join('')}
-          <div style="display:flex;flex-direction:column;gap:2px;align-items:center;flex-shrink:0">
-            <span style="font-size:8px;color:#787B86;font-family:monospace;font-weight:700">R:R</span>
-            <span id="risk-reward-display" style="font-size:12px;color:#FFC107;font-family:monospace;font-weight:700;min-width:30px;text-align:center">2:1</span>
-          </div>
-          <!-- Risk % indicator -->
-          <div style="display:flex;flex-direction:column;gap:2px;align-items:center;flex-shrink:0">
-            <span style="font-size:8px;color:#787B86;font-family:monospace;font-weight:700">RISK</span>
-            <span id="risk-pct-display" style="font-size:10px;color:#9E9E9E;font-family:monospace">1.0%</span>
-          </div>
+      <!-- Trade controls: 2 clear rows (inputs + actions) -->
+      <!-- ROW 1: Inputs grid -->
+      <div style="padding:6px 8px 3px;display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:5px;align-items:end">
+        <div>
+          <div style="font-size:8px;color:#B2B5BE;font-family:monospace;font-weight:700;margin-bottom:2px">LOTS</div>
+          <select id="tp-lots" style="width:100%;background:#1C1F2B;border:1px solid #363A4A;border-radius:3px;padding:4px 3px;font-size:11px;color:#D1D4DC;font-family:monospace">
+            <option>0.01</option><option>0.05</option><option selected>0.10</option>
+            <option>0.25</option><option>0.50</option><option>1.00</option>
+          </select>
         </div>
-
-        <!-- BUY / SELL / CLOSE -->
+        <div>
+          <div style="font-size:8px;color:#EF5350;font-family:monospace;font-weight:700;margin-bottom:2px">SL pips</div>
+          <input id="tp-sl" type="number" value="30" min="5" max="500" oninput="updateRiskCalc()"
+            style="width:100%;background:#1C1F2B;border:1px solid #EF535044;border-radius:3px;padding:4px 3px;font-size:11px;color:#D1D4DC;font-family:monospace">
+        </div>
+        <div>
+          <div style="font-size:8px;color:#26A69A;font-family:monospace;font-weight:700;margin-bottom:2px">TP pips</div>
+          <input id="tp-tp" type="number" value="60" min="5" max="1000" oninput="updateRiskCalc()"
+            style="width:100%;background:#1C1F2B;border:1px solid #26A69A44;border-radius:3px;padding:4px 3px;font-size:11px;color:#D1D4DC;font-family:monospace">
+        </div>
+        <div style="text-align:center;padding:0 4px">
+          <div style="font-size:8px;color:#B2B5BE;font-family:monospace;font-weight:700;margin-bottom:2px">R:R</div>
+          <span id="risk-reward-display" style="font-size:13px;color:#FFC107;font-family:monospace;font-weight:700;display:block">2:1</span>
+        </div>
+        <div style="text-align:center;padding:0 4px">
+          <div style="font-size:8px;color:#B2B5BE;font-family:monospace;font-weight:700;margin-bottom:2px">RISK</div>
+          <span id="risk-pct-display" style="font-size:11px;color:#9E9E9E;font-family:monospace;display:block">1%</span>
+        </div>
+      </div>
+      <!-- ROW 2: Big clear action buttons -->
+      <div style="padding:4px 8px 5px;display:flex;gap:6px">
         ${_simOpenTrade ? `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-            <span id="live-pnl" style="font-size:12px;font-family:monospace;color:#B2B5BE;font-weight:700">$0.00</span>
-            <button onclick="haptic(50);closeSimTrade('Manual')"
-              style="padding:6px 12px;background:#C62828;border:1px solid #EF5350;border-radius:3px;color:#fff;font-family:monospace;font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap;min-width:70px">
-              ■ CLOSE
+          <div style="display:flex;align-items:center;gap:10px;flex:1;background:#1A1206;border:1px solid #EF535055;border-radius:4px;padding:6px 10px">
+            <div>
+              <div style="font-size:9px;color:#787B86;font-family:monospace">LIVE P&L</div>
+              <span id="live-pnl" style="font-size:16px;font-family:monospace;font-weight:700;color:#B2B5BE">$0.00</span>
+            </div>
+            <button onclick="haptic(60);closeSimTrade('Manual')"
+              style="flex:1;padding:12px 8px;background:#C62828;border:2px solid #EF5350;border-radius:4px;color:#fff;font-family:monospace;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.5px">
+              ■ CLOSE TRADE
             </button>
           </div>` : `
-          <div style="display:flex;gap:5px">
-            <button onclick="haptic(35);openSimTrade('BUY')"
-              style="padding:7px 12px;background:#1B5E2022;border:2px solid #26A69A;border-radius:3px;color:#26A69A;background:#1B5E2022;font-family:monospace;font-weight:800;font-size:12px;cursor:pointer;min-width:58px;text-align:center;transition:all .1s"
-              ontouchstart="this.style.background='#26A69A33'" ontouchend="this.style.background='#1B5E2022'">
-              ▲ BUY<br><span style="font-size:9px;opacity:.75">${(_simCurrentPrice+(_simCurrentPair.includes('JPY')?0.003:0.00012)).toFixed(_simCurrentPair.includes('JPY')?3:4)}</span>
-            </button>
-            <button onclick="haptic(35);openSimTrade('SELL')"
-              style="padding:7px 12px;background:#B71C1C22;border:2px solid #EF5350;border-radius:3px;color:#EF5350;font-family:monospace;font-weight:800;font-size:12px;cursor:pointer;min-width:58px;text-align:center;transition:all .1s"
-              ontouchstart="this.style.background='#EF535033'" ontouchend="this.style.background='#B71C1C22'">
-              ▼ SELL<br><span style="font-size:9px;opacity:.75">${_simCurrentPrice.toFixed(_simCurrentPair.includes('JPY')?3:4)}</span>
-            </button>
-          </div>`}
+          <button onclick="haptic(35);openSimTrade('BUY')"
+            style="flex:1;padding:12px 8px;background:#0A2E1A;border:2px solid #26A69A;border-radius:4px;color:#26A69A;font-family:monospace;font-weight:800;font-size:14px;cursor:pointer;line-height:1.3"
+            ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">
+            ▲ BUY<br><span style="font-size:10px;opacity:.8;font-weight:400">${(_simCurrentPrice+(_simCurrentPair.includes('JPY')?0.003:0.00012)).toFixed(_simCurrentPair.includes('JPY')?3:4)}</span>
+          </button>
+          <button onclick="haptic(35);openSimTrade('SELL')"
+            style="flex:1;padding:12px 8px;background:#2E0A0A;border:2px solid #EF5350;border-radius:4px;color:#EF5350;font-family:monospace;font-weight:800;font-size:14px;cursor:pointer;line-height:1.3"
+            ontouchstart="this.style.opacity='.75'" ontouchend="this.style.opacity='1'">
+            ▼ SELL<br><span style="font-size:10px;opacity:.8;font-weight:400">${_simCurrentPrice.toFixed(_simCurrentPair.includes('JPY')?3:4)}</span>
+          </button>`}
       </div>
 
       <!-- Open trade info bar -->
