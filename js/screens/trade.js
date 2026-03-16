@@ -1,34 +1,29 @@
 // ============================================
-// TRADING TERMINAL - SINGLE FILE
-// Professional MT5-Style Simulator
+// TRADING TERMINAL MODULE
+// Single file that exports a terminal component
 // ============================================
 
-(function() {
+const TradingTerminal = (function() {
+    // Private variables
+    let container = null;
+    let isActive = false;
+    let animationFrame = null;
+    
     // ============================================
-    // STYLES - Injected CSS
+    // STYLES - Injected CSS (scoped to terminal)
     // ============================================
     const styles = `
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        #trading-terminal {
-            position: fixed;
-            top: 0;
-            left: 0;
+        .terminal-container {
             width: 100%;
-            height: 100vh;
+            height: 100%;
             background: #0a0b0d;
             color: #e0e0e0;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Top Bar */
         .terminal-header {
             background: #1e2226;
             padding: 8px 20px;
@@ -58,14 +53,12 @@
         .bid { color: #ff4d4d; }
         .ask { color: #4caf50; }
 
-        /* Main Layout */
         .terminal-main {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
 
-        /* Chart Area */
         .chart-container {
             flex: 1;
             display: flex;
@@ -101,14 +94,13 @@
             background: #2a2e33;
         }
 
-        #chart-canvas {
+        #terminal-chart-canvas {
             width: 100%;
             flex: 1;
             background: #131722;
             cursor: crosshair;
         }
 
-        /* Right Panel - Trading */
         .trading-panel {
             width: 300px;
             background: #1e2226;
@@ -140,7 +132,6 @@
         .margin-value { color: #ffd700; }
         .free-margin-value { color: #4caf50; }
 
-        /* Trading Controls */
         .trading-controls {
             padding: 20px;
             border-bottom: 1px solid #2a2e33;
@@ -196,7 +187,6 @@
             border-radius: 3px;
         }
 
-        /* Open Positions */
         .positions-section {
             padding: 20px;
             flex: 1;
@@ -246,7 +236,6 @@
             background: #8e0000;
         }
 
-        /* Indicators Panel */
         .indicators-panel {
             padding: 20px;
             border-top: 1px solid #2a2e33;
@@ -271,109 +260,7 @@
     `;
 
     // ============================================
-    // INJECT STYLES
-    // ============================================
-    const styleSheet = document.createElement("style");
-    styleSheet.textContent = styles;
-    document.head.appendChild(styleSheet);
-
-    // ============================================
-    // CREATE TERMINAL HTML
-    // ============================================
-    document.body.innerHTML = `
-        <div id="trading-terminal">
-            <div class="terminal-header">
-                <div class="symbol-info">
-                    <span class="symbol">EURUSD</span>
-                    <span>Leverage: 1:100</span>
-                </div>
-                <div class="price-info">
-                    <span class="bid">Bid: <span id="bid-price">1.10000</span></span>
-                    <span class="ask">Ask: <span id="ask-price">1.10020</span></span>
-                </div>
-                <div class="server-time">
-                    Server Time: <span id="server-time">00:00:00</span>
-                </div>
-            </div>
-
-            <div class="terminal-main">
-                <div class="chart-container">
-                    <div class="chart-toolbar">
-                        <button class="timeframe-btn active" data-timeframe="1m">1m</button>
-                        <button class="timeframe-btn" data-timeframe="5m">5m</button>
-                        <button class="timeframe-btn" data-timeframe="15m">15m</button>
-                        <button class="timeframe-btn" data-timeframe="1h">1h</button>
-                        <button class="timeframe-btn" data-timeframe="4h">4h</button>
-                        <button class="timeframe-btn" data-timeframe="1d">1d</button>
-                    </div>
-                    <canvas id="chart-canvas"></canvas>
-                </div>
-
-                <div class="trading-panel">
-                    <div class="account-summary">
-                        <div class="balance-row">
-                            <span>Balance:</span>
-                            <span class="balance-value" id="balance">$10,000.00</span>
-                        </div>
-                        <div class="balance-row">
-                            <span>Equity:</span>
-                            <span class="equity-value" id="equity">$10,000.00</span>
-                        </div>
-                        <div class="balance-row">
-                            <span>Margin:</span>
-                            <span class="margin-value" id="margin">$0.00</span>
-                        </div>
-                        <div class="balance-row">
-                            <span>Free Margin:</span>
-                            <span class="free-margin-value" id="free-margin">$10,000.00</span>
-                        </div>
-                    </div>
-
-                    <div class="trading-controls">
-                        <div class="trade-type">
-                            <button class="trade-btn buy-btn" onclick="terminal.buy()">BUY</button>
-                            <button class="trade-btn sell-btn" onclick="terminal.sell()">SELL</button>
-                        </div>
-                        <div class="position-size">
-                            <label>Volume (Lots)</label>
-                            <input type="number" id="lot-size" value="0.01" min="0.01" max="100" step="0.01">
-                        </div>
-                    </div>
-
-                    <div class="positions-section">
-                        <div class="section-title">OPEN POSITIONS</div>
-                        <div id="positions-list"></div>
-                    </div>
-
-                    <div class="indicators-panel">
-                        <div class="section-title">INDICATORS</div>
-                        <div class="indicator-checkbox">
-                            <input type="checkbox" id="show-rsi" checked>
-                            <label for="show-rsi">RSI (14)</label>
-                        </div>
-                        <div class="indicator-checkbox">
-                            <input type="checkbox" id="show-macd">
-                            <label for="show-macd">MACD (12,26,9)</label>
-                        </div>
-                        <div class="indicator-checkbox">
-                            <input type="checkbox" id="show-ema">
-                            <label for="show-ema">EMA (20)</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="status-bar">
-                <span>Spread: 2.0 pips</span>
-                <span>Swap Long: -4.25</span>
-                <span>Swap Short: -2.15</span>
-                <span id="connection-status">Connected (Demo)</span>
-            </div>
-        </div>
-    `;
-
-    // ============================================
-    // TRADING ENGINE
+    // TERMINAL STATE
     // ============================================
     const TerminalState = {
         symbol: 'EURUSD',
@@ -405,62 +292,53 @@
         showEMA: false,
         
         // Chart settings
-        visibleCandles: 80
+        visibleCandles: 80,
+        
+        // Mouse position for crosshair
+        mouseX: null,
+        mouseY: null
     };
 
     // ============================================
-    // PRICE GENERATOR (Realistic Market Simulation)
+    // PRIVATE METHODS
     // ============================================
     function generateMarketMovement() {
-        // Trend component (slow moving average)
         TerminalState.trend += (Math.random() - 0.5) * 0.00001;
         TerminalState.trend = Math.max(-0.001, Math.min(0.001, TerminalState.trend));
         
-        // Momentum component
         TerminalState.momentum += (Math.random() - 0.5) * 0.0001;
-        TerminalState.momentum = TerminalState.momentum * 0.9; // Decay
+        TerminalState.momentum = TerminalState.momentum * 0.9;
         
-        // Random noise
         const noise = (Math.random() - 0.5) * TerminalState.volatility;
-        
-        // Combine components
         const move = TerminalState.trend + TerminalState.momentum + noise;
         
-        // Update bid price
         TerminalState.bid += move;
-        
-        // Ensure price stays positive
         TerminalState.bid = Math.max(0.8, Math.min(1.4, TerminalState.bid));
-        
-        // Update ask price (bid + spread)
         TerminalState.ask = TerminalState.bid + TerminalState.spread;
         
-        // Update UI
-        document.getElementById('bid-price').textContent = TerminalState.bid.toFixed(5);
-        document.getElementById('ask-price').textContent = TerminalState.ask.toFixed(5);
+        // Update UI if active
+        if (isActive) {
+            const bidEl = document.getElementById('terminal-bid-price');
+            const askEl = document.getElementById('terminal-ask-price');
+            if (bidEl) bidEl.textContent = TerminalState.bid.toFixed(5);
+            if (askEl) askEl.textContent = TerminalState.ask.toFixed(5);
+        }
     }
 
-    // ============================================
-    // CANDLE MANAGEMENT
-    // ============================================
     function updateCandles() {
         const now = Date.now();
         const secondsSinceLastCandle = (now - TerminalState.lastCandleTime) / 1000;
         
-        // Check if we need a new candle
         if (secondsSinceLastCandle >= TerminalState.candleSeconds) {
-            // Close current candle if exists
             if (TerminalState.currentCandle) {
                 TerminalState.currentCandle.close = TerminalState.bid;
                 TerminalState.candles.push(TerminalState.currentCandle);
                 
-                // Keep only last 1000 candles
                 if (TerminalState.candles.length > 1000) {
                     TerminalState.candles.shift();
                 }
             }
             
-            // Create new candle
             TerminalState.currentCandle = {
                 open: TerminalState.bid,
                 high: TerminalState.bid,
@@ -471,13 +349,11 @@
             
             TerminalState.lastCandleTime = now;
         } else {
-            // Update current candle
             if (TerminalState.currentCandle) {
                 TerminalState.currentCandle.high = Math.max(TerminalState.currentCandle.high, TerminalState.bid);
                 TerminalState.currentCandle.low = Math.min(TerminalState.currentCandle.low, TerminalState.bid);
                 TerminalState.currentCandle.close = TerminalState.bid;
             } else {
-                // First candle
                 TerminalState.currentCandle = {
                     open: TerminalState.bid,
                     high: TerminalState.bid,
@@ -489,9 +365,6 @@
         }
     }
 
-    // ============================================
-    // INDICATORS CALCULATION
-    // ============================================
     function calculateRSI(period = 14) {
         if (TerminalState.candles.length < period + 1) return null;
         
@@ -530,14 +403,27 @@
         return ema.slice(-TerminalState.visibleCandles);
     }
 
-    // ============================================
-    // CHART DRAWING ENGINE
-    // ============================================
+    function calculateRSISlice(candles) {
+        let gains = 0, losses = 0;
+        for (let i = 1; i < candles.length; i++) {
+            const change = candles[i].close - candles[i-1].close;
+            if (change >= 0) gains += change;
+            else losses -= change;
+        }
+        const avgGain = gains / 14;
+        const avgLoss = losses / 14;
+        if (avgLoss === 0) return 100;
+        return 100 - (100 / (1 + avgGain / avgLoss));
+    }
+
     function drawChart() {
-        const canvas = document.getElementById('chart-canvas');
+        if (!isActive) return;
+        
+        const canvas = document.getElementById('terminal-chart-canvas');
+        if (!canvas) return;
+        
         const ctx = canvas.getContext('2d');
         
-        // Set canvas size
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
         
@@ -546,13 +432,11 @@
         const candles = [...TerminalState.candles, TerminalState.currentCandle].filter(Boolean).slice(-TerminalState.visibleCandles);
         if (candles.length === 0) return;
         
-        // Calculate price range for scaling
         const prices = candles.flatMap(c => [c.high, c.low]);
         const maxPrice = Math.max(...prices);
         const minPrice = Math.min(...prices);
         const priceRange = maxPrice - minPrice || 1;
         
-        // Chart dimensions
         const padding = { top: 20, bottom: 30, left: 50, right: 20 };
         const chartWidth = canvas.width - padding.left - padding.right;
         const chartHeight = canvas.height - padding.top - padding.bottom;
@@ -564,7 +448,6 @@
         ctx.strokeStyle = '#2a2e33';
         ctx.lineWidth = 0.5;
         
-        // Horizontal grid lines
         for (let i = 0; i <= 5; i++) {
             const y = padding.top + (i / 5) * chartHeight;
             ctx.beginPath();
@@ -572,7 +455,6 @@
             ctx.lineTo(canvas.width - padding.right, y);
             ctx.stroke();
             
-            // Price labels
             const price = maxPrice - (i / 5) * priceRange;
             ctx.fillStyle = '#8a8d92';
             ctx.font = '10px Arial';
@@ -583,13 +465,11 @@
         candles.forEach((candle, index) => {
             const x = padding.left + index * (candleWidth + spacing);
             
-            // Calculate y positions
             const highY = padding.top + ((maxPrice - candle.high) / priceRange) * chartHeight;
             const lowY = padding.top + ((maxPrice - candle.low) / priceRange) * chartHeight;
             const openY = padding.top + ((maxPrice - candle.open) / priceRange) * chartHeight;
             const closeY = padding.top + ((maxPrice - candle.close) / priceRange) * chartHeight;
             
-            // Draw wick
             ctx.strokeStyle = '#8a8d92';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -597,18 +477,17 @@
             ctx.lineTo(x + candleWidth / 2, lowY);
             ctx.stroke();
             
-            // Draw body
             const isBullish = candle.close >= candle.open;
             ctx.fillStyle = isBullish ? '#4caf50' : '#ff4d4d';
             ctx.fillRect(x, Math.min(openY, closeY), candleWidth, Math.abs(closeY - openY) || 1);
         });
         
         // Draw indicators
-        if (TerminalState.showRSI) {
+        if (TerminalState.showRSI && candles.length > 15) {
             drawRSI(ctx, candles, padding, chartWidth, chartHeight, maxPrice, minPrice);
         }
         
-        if (TerminalState.showEMA) {
+        if (TerminalState.showEMA && candles.length > 20) {
             drawEMA(ctx, candles, padding, chartWidth, chartHeight, maxPrice, minPrice);
         }
         
@@ -633,8 +512,6 @@
     }
 
     function drawRSI(ctx, candles, padding, chartWidth, chartHeight, maxPrice, minPrice) {
-        if (candles.length < 15) return;
-        
         const rsiValues = [];
         for (let i = 14; i < candles.length; i++) {
             rsiValues.push(calculateRSISlice(candles.slice(i - 14, i + 1)));
@@ -660,22 +537,7 @@
         ctx.stroke();
     }
 
-    function calculateRSISlice(candles) {
-        let gains = 0, losses = 0;
-        for (let i = 1; i < candles.length; i++) {
-            const change = candles[i].close - candles[i-1].close;
-            if (change >= 0) gains += change;
-            else losses -= change;
-        }
-        const avgGain = gains / 14;
-        const avgLoss = losses / 14;
-        if (avgLoss === 0) return 100;
-        return 100 - (100 / (1 + avgGain / avgLoss));
-    }
-
     function drawEMA(ctx, candles, padding, chartWidth, chartHeight, maxPrice, minPrice) {
-        if (candles.length < 20) return;
-        
         const ema = calculateEMA(20);
         if (ema.length < 2) return;
         
@@ -697,15 +559,11 @@
         ctx.stroke();
     }
 
-    // ============================================
-    // TRADING FUNCTIONS
-    // ============================================
     function openPosition(type) {
-        const lotSize = parseFloat(document.getElementById('lot-size').value) || 0.01;
-        const contractSize = 100000; // Standard lot
-        const marginRequired = (lotSize * contractSize * TerminalState.ask) / 100; // 1:100 leverage
+        const lotSize = parseFloat(document.getElementById('terminal-lot-size').value) || 0.01;
+        const contractSize = 100000;
+        const marginRequired = (lotSize * contractSize * TerminalState.ask) / 100;
         
-        // Check margin
         if (marginRequired > TerminalState.freeMargin) {
             alert('Insufficient margin!');
             return;
@@ -722,8 +580,6 @@
         };
         
         TerminalState.positions.push(position);
-        
-        // Update margin
         TerminalState.margin += marginRequired;
         updateAccount();
         renderPositions();
@@ -736,20 +592,15 @@
         const position = TerminalState.positions[index];
         const closePrice = position.type === 'buy' ? TerminalState.bid : TerminalState.ask;
         
-        // Calculate profit/loss
         const points = position.type === 'buy' 
             ? closePrice - position.entry 
             : position.entry - closePrice;
         
         const profit = points * position.lot * 100000;
         
-        // Update balance
         TerminalState.balance += profit;
-        
-        // Remove position
         TerminalState.positions.splice(index, 1);
         
-        // Recalculate margin
         TerminalState.margin = TerminalState.positions.reduce((total, pos) => {
             return total + (pos.lot * 100000 * TerminalState.ask) / 100;
         }, 0);
@@ -759,7 +610,6 @@
     }
 
     function updateAccount() {
-        // Calculate unrealized P&L
         let unrealizedPL = 0;
         TerminalState.positions.forEach(pos => {
             const currentPrice = pos.type === 'buy' ? TerminalState.bid : TerminalState.ask;
@@ -772,15 +622,24 @@
         TerminalState.equity = TerminalState.balance + unrealizedPL;
         TerminalState.freeMargin = TerminalState.equity - TerminalState.margin;
         
-        // Update UI
-        document.getElementById('balance').textContent = `$${TerminalState.balance.toFixed(2)}`;
-        document.getElementById('equity').textContent = `$${TerminalState.equity.toFixed(2)}`;
-        document.getElementById('margin').textContent = `$${TerminalState.margin.toFixed(2)}`;
-        document.getElementById('free-margin').textContent = `$${TerminalState.freeMargin.toFixed(2)}`;
+        if (isActive) {
+            const balanceEl = document.getElementById('terminal-balance');
+            const equityEl = document.getElementById('terminal-equity');
+            const marginEl = document.getElementById('terminal-margin');
+            const freeMarginEl = document.getElementById('terminal-free-margin');
+            
+            if (balanceEl) balanceEl.textContent = `$${TerminalState.balance.toFixed(2)}`;
+            if (equityEl) equityEl.textContent = `$${TerminalState.equity.toFixed(2)}`;
+            if (marginEl) marginEl.textContent = `$${TerminalState.margin.toFixed(2)}`;
+            if (freeMarginEl) freeMarginEl.textContent = `$${TerminalState.freeMargin.toFixed(2)}`;
+        }
     }
 
     function renderPositions() {
-        const container = document.getElementById('positions-list');
+        if (!isActive) return;
+        
+        const container = document.getElementById('terminal-positions-list');
+        if (!container) return;
         
         if (TerminalState.positions.length === 0) {
             container.innerHTML = '<div style="color: #8a8d92; text-align: center; padding: 20px;">No open positions</div>';
@@ -805,117 +664,262 @@
                     <div class="position-details">
                         <span>${pos.entry.toFixed(5)}</span>
                         <span>${pos.time}</span>
-                        <button class="close-position" onclick="terminal.closePosition(${pos.id})">Close</button>
+                        <button class="close-position" onclick="TradingTerminalAPI.closePosition(${pos.id})">Close</button>
                     </div>
                 </div>
             `;
         }).join('');
     }
 
-    // ============================================
-    // UI CONTROL OBJECT
-    // ============================================
-    window.terminal = {
-        buy: () => openPosition('buy'),
-        sell: () => openPosition('sell'),
-        closePosition: (id) => closePosition(id),
-        setTimeframe: (tf) => {
-            TerminalState.timeframe = tf;
-            const seconds = {
-                '1m': 60,
-                '5m': 300,
-                '15m': 900,
-                '1h': 3600,
-                '4h': 14400,
-                '1d': 86400
-            };
-            TerminalState.candleSeconds = seconds[tf] || 60;
+    function setupEventListeners() {
+        if (!container) return;
+        
+        // Timeframe buttons
+        container.querySelectorAll('.timeframe-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tf = e.target.dataset.timeframe;
+                setTimeframe(tf);
+            });
+        });
+        
+        // Indicator checkboxes
+        const rsiCheckbox = document.getElementById('terminal-show-rsi');
+        const macdCheckbox = document.getElementById('terminal-show-macd');
+        const emaCheckbox = document.getElementById('terminal-show-ema');
+        
+        if (rsiCheckbox) {
+            rsiCheckbox.addEventListener('change', (e) => {
+                TerminalState.showRSI = e.target.checked;
+            });
+        }
+        
+        if (macdCheckbox) {
+            macdCheckbox.addEventListener('change', (e) => {
+                TerminalState.showMACD = e.target.checked;
+            });
+        }
+        
+        if (emaCheckbox) {
+            emaCheckbox.addEventListener('change', (e) => {
+                TerminalState.showEMA = e.target.checked;
+            });
+        }
+        
+        // Mouse tracking for crosshair
+        const canvas = document.getElementById('terminal-chart-canvas');
+        if (canvas) {
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                TerminalState.mouseX = e.clientX - rect.left;
+                TerminalState.mouseY = e.clientY - rect.top;
+            });
             
-            // Update active button
-            document.querySelectorAll('.timeframe-btn').forEach(btn => {
+            canvas.addEventListener('mouseleave', () => {
+                TerminalState.mouseX = null;
+                TerminalState.mouseY = null;
+            });
+        }
+    }
+
+    function setTimeframe(tf) {
+        TerminalState.timeframe = tf;
+        const seconds = {
+            '1m': 60,
+            '5m': 300,
+            '15m': 900,
+            '1h': 3600,
+            '4h': 14400,
+            '1d': 86400
+        };
+        TerminalState.candleSeconds = seconds[tf] || 60;
+        
+        if (isActive) {
+            container.querySelectorAll('.timeframe-btn').forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.timeframe === tf) {
                     btn.classList.add('active');
                 }
             });
         }
-    };
+    }
 
-    // ============================================
-    // EVENT LISTENERS
-    // ============================================
-    document.addEventListener('DOMContentLoaded', () => {
-        // Timeframe buttons
-        document.querySelectorAll('.timeframe-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                terminal.setTimeframe(e.target.dataset.timeframe);
-            });
-        });
-        
-        // Indicator checkboxes
-        document.getElementById('show-rsi').addEventListener('change', (e) => {
-            TerminalState.showRSI = e.target.checked;
-        });
-        
-        document.getElementById('show-macd').addEventListener('change', (e) => {
-            TerminalState.showMACD = e.target.checked;
-        });
-        
-        document.getElementById('show-ema').addEventListener('change', (e) => {
-            TerminalState.showEMA = e.target.checked;
-        });
-        
-        // Mouse tracking for crosshair
-        const canvas = document.getElementById('chart-canvas');
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            TerminalState.mouseX = e.clientX - rect.left;
-            TerminalState.mouseY = e.clientY - rect.top;
-        });
-        
-        canvas.addEventListener('mouseleave', () => {
-            TerminalState.mouseX = null;
-            TerminalState.mouseY = null;
-        });
-    });
-
-    // ============================================
-    // MAIN LOOP
-    // ============================================
     function mainLoop() {
-        // Generate price movement
-        generateMarketMovement();
+        if (!isActive) return;
         
-        // Update candles
+        generateMarketMovement();
         updateCandles();
         
-        // Update positions with current prices
         TerminalState.positions.forEach(pos => {
             pos.current = pos.type === 'buy' ? TerminalState.bid : TerminalState.ask;
         });
         
-        // Update account
         updateAccount();
-        
-        // Update positions display
         renderPositions();
-        
-        // Draw chart
         drawChart();
         
-        // Update server time
-        document.getElementById('server-time').textContent = new Date().toLocaleTimeString();
+        const timeEl = document.getElementById('terminal-server-time');
+        if (timeEl) {
+            timeEl.textContent = new Date().toLocaleTimeString();
+        }
         
-        requestAnimationFrame(mainLoop);
+        animationFrame = requestAnimationFrame(mainLoop);
     }
 
-    // Start the main loop
-    setTimeout(() => {
+    // ============================================
+    // PUBLIC API
+    // ============================================
+    function mount(parentElement) {
+        if (isActive) return;
+        
+        container = document.createElement('div');
+        container.className = 'terminal-container';
+        container.innerHTML = `
+            <div class="terminal-header">
+                <div class="symbol-info">
+                    <span class="symbol">EURUSD</span>
+                    <span>Leverage: 1:100</span>
+                </div>
+                <div class="price-info">
+                    <span class="bid">Bid: <span id="terminal-bid-price">1.10000</span></span>
+                    <span class="ask">Ask: <span id="terminal-ask-price">1.10020</span></span>
+                </div>
+                <div class="server-time">
+                    Server Time: <span id="terminal-server-time">00:00:00</span>
+                </div>
+            </div>
+
+            <div class="terminal-main">
+                <div class="chart-container">
+                    <div class="chart-toolbar">
+                        <button class="timeframe-btn active" data-timeframe="1m">1m</button>
+                        <button class="timeframe-btn" data-timeframe="5m">5m</button>
+                        <button class="timeframe-btn" data-timeframe="15m">15m</button>
+                        <button class="timeframe-btn" data-timeframe="1h">1h</button>
+                        <button class="timeframe-btn" data-timeframe="4h">4h</button>
+                        <button class="timeframe-btn" data-timeframe="1d">1d</button>
+                    </div>
+                    <canvas id="terminal-chart-canvas"></canvas>
+                </div>
+
+                <div class="trading-panel">
+                    <div class="account-summary">
+                        <div class="balance-row">
+                            <span>Balance:</span>
+                            <span class="balance-value" id="terminal-balance">$10,000.00</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Equity:</span>
+                            <span class="equity-value" id="terminal-equity">$10,000.00</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Margin:</span>
+                            <span class="margin-value" id="terminal-margin">$0.00</span>
+                        </div>
+                        <div class="balance-row">
+                            <span>Free Margin:</span>
+                            <span class="free-margin-value" id="terminal-free-margin">$10,000.00</span>
+                        </div>
+                    </div>
+
+                    <div class="trading-controls">
+                        <div class="trade-type">
+                            <button class="trade-btn buy-btn" onclick="TradingTerminalAPI.buy()">BUY</button>
+                            <button class="trade-btn sell-btn" onclick="TradingTerminalAPI.sell()">SELL</button>
+                        </div>
+                        <div class="position-size">
+                            <label>Volume (Lots)</label>
+                            <input type="number" id="terminal-lot-size" value="0.01" min="0.01" max="100" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="positions-section">
+                        <div class="section-title">OPEN POSITIONS</div>
+                        <div id="terminal-positions-list"></div>
+                    </div>
+
+                    <div class="indicators-panel">
+                        <div class="section-title">INDICATORS</div>
+                        <div class="indicator-checkbox">
+                            <input type="checkbox" id="terminal-show-rsi" checked>
+                            <label for="terminal-show-rsi">RSI (14)</label>
+                        </div>
+                        <div class="indicator-checkbox">
+                            <input type="checkbox" id="terminal-show-macd">
+                            <label for="terminal-show-macd">MACD (12,26,9)</label>
+                        </div>
+                        <div class="indicator-checkbox">
+                            <input type="checkbox" id="terminal-show-ema">
+                            <label for="terminal-show-ema">EMA (20)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <span>Spread: 2.0 pips</span>
+                <span>Swap Long: -4.25</span>
+                <span>Swap Short: -2.15</span>
+                <span id="terminal-connection-status">Connected (Demo)</span>
+            </div>
+        `;
+        
+        parentElement.appendChild(container);
+        
+        // Inject styles if not already present
+        if (!document.getElementById('terminal-styles')) {
+            const styleSheet = document.createElement("style");
+            styleSheet.id = 'terminal-styles';
+            styleSheet.textContent = styles;
+            document.head.appendChild(styleSheet);
+        }
+        
+        isActive = true;
+        
+        // Setup event listeners
+        setupEventListeners();
+        
         // Generate some initial candles
         for (let i = 0; i < 100; i++) {
             generateMarketMovement();
             updateCandles();
         }
+        
+        // Start main loop
         mainLoop();
-    }, 100);
+    }
+
+    function unmount() {
+        if (!isActive || !container) return;
+        
+        isActive = false;
+        
+        if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+        }
+        
+        container.remove();
+        container = null;
+    }
+
+    // Public API for buttons
+    window.TradingTerminalAPI = {
+        buy: () => openPosition('buy'),
+        sell: () => openPosition('sell'),
+        closePosition: (id) => closePosition(id),
+        setTimeframe: (tf) => setTimeframe(tf)
+    };
+
+    // Return public methods
+    return {
+        mount: mount,
+        unmount: unmount,
+        isActive: () => isActive
+    };
 })();
+
+// Auto-mount if this is the main page (for testing)
+// Comment this out when using in your app
+// document.addEventListener('DOMContentLoaded', () => {
+//     TradingTerminal.mount(document.body);
+// });
