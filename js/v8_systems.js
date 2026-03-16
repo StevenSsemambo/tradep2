@@ -2365,6 +2365,81 @@ function toggleFloatChat() {
   }
 }
 
+/* ── DRAGGABLE FLOAT BUTTON ──────────────────────────────────── */
+(function initFloatDrag() {
+  let _fDragging = false, _fStartX = 0, _fStartY = 0,
+      _fOrigX = 0, _fOrigY = 0, _fMoved = false;
+
+  const wrap = document.getElementById('float-btn-wrap');
+  if (!wrap) return;
+
+  function setPos(x, y) {
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h') || '62');
+    // Clamp to screen
+    const clampX = Math.max(8, Math.min(vw - 60, x));
+    const clampY = Math.max(60, Math.min(vh - navH - 60, y));
+    wrap.style.right  = 'auto';
+    wrap.style.bottom = 'auto';
+    wrap.style.left   = clampX + 'px';
+    wrap.style.top    = clampY + 'px';
+  }
+
+  wrap.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    const r = wrap.getBoundingClientRect();
+    _fStartX  = t.clientX; _fStartY = t.clientY;
+    _fOrigX   = r.left;    _fOrigY  = r.top;
+    _fDragging = true; _fMoved = false;
+    wrap.style.cursor = 'grabbing';
+    e.preventDefault();
+  }, { passive: false });
+
+  wrap.addEventListener('touchmove', e => {
+    if (!_fDragging) return;
+    const t  = e.touches[0];
+    const dx = t.clientX - _fStartX;
+    const dy = t.clientY - _fStartY;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) _fMoved = true;
+    if (_fMoved) setPos(_fOrigX + dx, _fOrigY + dy);
+    e.preventDefault();
+  }, { passive: false });
+
+  wrap.addEventListener('touchend', e => {
+    _fDragging = false;
+    wrap.style.cursor = 'grab';
+  });
+
+  // Mouse drag for desktop
+  wrap.addEventListener('mousedown', e => {
+    const r = wrap.getBoundingClientRect();
+    _fStartX = e.clientX; _fStartY = e.clientY;
+    _fOrigX  = r.left;    _fOrigY  = r.top;
+    _fDragging = true; _fMoved = false;
+    document.body.style.userSelect = 'none';
+  });
+  window.addEventListener('mousemove', e => {
+    if (!_fDragging) return;
+    const dx = e.clientX - _fStartX, dy = e.clientY - _fStartY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) _fMoved = true;
+    if (_fMoved) setPos(_fOrigX + dx, _fOrigY + dy);
+  });
+  window.addEventListener('mouseup', () => {
+    _fDragging = false;
+    document.body.style.userSelect = '';
+  });
+})();
+
+function handleFloatBtnClick(e) {
+  // Only toggle chat if this was a tap (not a drag)
+  const wrap = document.getElementById('float-btn-wrap');
+  if (wrap && (wrap.style.left || wrap.style.top)) {
+    // After a drag, the first tap after release should still work
+  }
+  toggleFloatChat();
+}
+
+
 function initFloatChat() {
   const dna = calculateTraderDNA();
   const name = STATE.user.name || 'Trader';
@@ -4053,6 +4128,98 @@ function answerSpeedRound(answer) {
   }
   _speedRoundQ = getSpeedRoundQuestion();
   renderScreen('speedround');
+}
+
+
+/* ── FLOAT CHAT DRAG SYSTEM ──────────────────────────────────────
+   Makes the float chat panel draggable/repositionable on mobile.
+   User grabs the drag handle bar and moves the panel anywhere.
+   ──────────────────────────────────────────────────────────────── */
+let _floatDragActive = false;
+let _floatDragStartY = 0;
+let _floatPanelStartBottom = 0;
+let _floatBottomPos = null; // null = use CSS default
+let _floatMinimized = false;
+
+function floatDragStart(e) {
+  _floatDragActive = true;
+  _floatDragStartY = e.touches[0].clientY;
+  const panel = document.getElementById('float-chat-panel');
+  if (panel) {
+    const rect = panel.getBoundingClientRect();
+    _floatPanelStartBottom = window.innerHeight - rect.bottom;
+  }
+  e.preventDefault();
+}
+
+function floatDragMove(e) {
+  if (!_floatDragActive) return;
+  const dy = _floatDragStartY - e.touches[0].clientY; // positive = dragging up
+  const newBottom = Math.max(70, Math.min(window.innerHeight * 0.7, _floatPanelStartBottom + dy));
+  const panel = document.getElementById('float-chat-panel');
+  if (panel) {
+    panel.style.bottom = newBottom + 'px';
+    panel.style.transition = 'none';
+    _floatBottomPos = newBottom;
+  }
+  e.preventDefault();
+}
+
+function floatDragEnd(e) {
+  _floatDragActive = false;
+  const panel = document.getElementById('float-chat-panel');
+  if (panel) panel.style.transition = '';
+}
+
+function floatDragStartMouse(e) {
+  _floatDragActive = true;
+  _floatDragStartY = e.clientY;
+  const panel = document.getElementById('float-chat-panel');
+  if (panel) {
+    const rect = panel.getBoundingClientRect();
+    _floatPanelStartBottom = window.innerHeight - rect.bottom;
+  }
+  const onMove = ev => {
+    const dy = _floatDragStartY - ev.clientY;
+    const newBottom = Math.max(70, Math.min(window.innerHeight * 0.7, _floatPanelStartBottom + dy));
+    const p = document.getElementById('float-chat-panel');
+    if (p) { p.style.bottom = newBottom + 'px'; _floatBottomPos = newBottom; }
+  };
+  const onUp = () => {
+    _floatDragActive = false;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  e.preventDefault();
+}
+
+function minimizeFloatChat() {
+  const panel = document.getElementById('float-chat-panel');
+  if (!panel) return;
+  _floatMinimized = !_floatMinimized;
+  if (_floatMinimized) {
+    // Show only the header + drag handle — collapse messages/input
+    const messages = document.getElementById('float-messages');
+    const suggestions = document.getElementById('float-suggestions');
+    const inputBar = panel.querySelector('div[style*="gap:7px;padding:8px"]');
+    if (messages) messages.style.display = 'none';
+    if (suggestions) suggestions.style.display = 'none';
+    if (inputBar) inputBar.style.display = 'none';
+    panel.style.height = 'auto';
+    panel.style.minHeight = '0';
+    showToast('Chat minimized — tap the 🤖 button to expand');
+  } else {
+    const messages = document.getElementById('float-messages');
+    const suggestions = document.getElementById('float-suggestions');
+    const inputBar = panel.querySelector('div[style*="gap:7px;padding:8px"]');
+    if (messages) messages.style.display = 'flex';
+    if (suggestions) suggestions.style.display = 'flex';
+    if (inputBar) inputBar.style.display = 'flex';
+    panel.style.height = '';
+    panel.style.minHeight = '';
+  }
 }
 
 console.log('✅ New features loaded: Hot Streak, Streak Freeze, Session Countdown, Pre-Trade Checklist, Risk of Ruin, Correlation Matrix, Speed Round');
