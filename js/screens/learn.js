@@ -2,6 +2,8 @@
    LEARN, PROFILE, TOOLS SCREENS
    ═══════════════════════════════════════════ */
 
+let _stratFilter = 'All';
+
 // ── LEARN ──
 function renderLearn() {
   const pct = progressPct();
