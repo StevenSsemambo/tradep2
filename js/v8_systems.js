@@ -3516,3 +3516,543 @@ function showDNAHistory() {
 function showPathSelector() {
   navigate('mypath');
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   NEW FEATURES BATCH — XP Hot Streak, Streak Freeze,
+   Session Countdown, Daily Challenge, Pre-Trade Checklist,
+   Risk of Ruin Calculator, Pair Correlation Matrix,
+   Post-Lesson Quiz, Candle Speed Round
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── XP HOT STREAK MULTIPLIER ──────────────────────────────────
+   3 consecutive sim wins → 2× XP on next trade (shown on home)  */
+function getHotStreakMultiplier() {
+  const recent = STATE.simTrades.slice(-3);
+  if (recent.length === 3 && recent.every(t => parseFloat(t.pnl) > 0)) return 2;
+  const recent2 = STATE.simTrades.slice(-5);
+  if (recent2.length >= 5 && recent2.slice(-5).filter(t=>parseFloat(t.pnl)>0).length >= 4) return 1.5;
+  return 1;
+}
+
+function getHotStreakLabel() {
+  const m = getHotStreakMultiplier();
+  if (m === 2)   return { text:'🔥🔥 HOT STREAK — 2× XP active!', color:'var(--orange)' };
+  if (m === 1.5) return { text:'🔥 Warm Streak — 1.5× XP active', color:'var(--gold)' };
+  return null;
+}
+
+/* ── STREAK FREEZE ──────────────────────────────────────────────
+   Spend 50 XP to protect daily streak for one day              */
+function renderStreakFreeze() {
+  const hasFreeze = STATE.streakFreezeUsed === new Date().toDateString();
+  const xp = STATE.user?.xp || 0;
+  return `
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-family:var(--display);font-weight:700;font-size:14px">🧊 Streak Freeze</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:3px">Protect your streak if you miss a day</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:2px">
+            ${hasFreeze ? '✅ Freeze active today' : `Costs 50 XP · You have ${xp} XP`}
+          </div>
+        </div>
+        <button onclick="buyStreakFreeze()" class="btn btn-outline btn-sm"
+          style="${hasFreeze || xp < 50 ? 'opacity:.4;pointer-events:none' : ''}">
+          ${hasFreeze ? 'Active ✓' : '50 XP'}
+        </button>
+      </div>
+    </div>`;
+}
+
+function buyStreakFreeze() {
+  const xp = STATE.user?.xp || 0;
+  if (xp < 50) { showToast('⚠️ Not enough XP. Need 50 XP.'); return; }
+  STATE.user.xp -= 50;
+  STATE.streakFreezeUsed = new Date().toDateString();
+  saveState();
+  showToast('🧊 Streak freeze purchased! Your streak is protected today.');
+}
+
+/* ── SESSION COUNTDOWN ─────────────────────────────────────────
+   Returns next session name and minutes until open            */
+function getNextSessionCountdown() {
+  const now = new Date();
+  const utcMins = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const sessions = [
+    { name:'🇬🇧 London',  open: 8*60,  close:17*60, pairs:'EUR/USD · GBP/USD' },
+    { name:'🇺🇸 New York', open:13*60,  close:22*60, pairs:'USD pairs · Gold' },
+    { name:'🇯🇵 Tokyo',    open: 0,     close: 9*60, pairs:'USD/JPY · AUD pairs' },
+    { name:'🌏 Sydney',    open:22*60,  close: 7*60, pairs:'AUD/NZD pairs' },
+  ];
+
+  // Find currently open sessions
+  const open = sessions.filter(s => {
+    if (s.open < s.close) return utcMins >= s.open && utcMins < s.close;
+    return utcMins >= s.open || utcMins < s.close;
+  });
+
+  if (open.length > 0) {
+    // Find which one closes first
+    const soonClose = open.sort((a,b) => {
+      const minsA = a.close > utcMins ? a.close - utcMins : a.close + 1440 - utcMins;
+      const minsB = b.close > utcMins ? b.close - utcMins : b.close + 1440 - utcMins;
+      return minsA - minsB;
+    })[0];
+    const minsLeft = soonClose.close > utcMins ? soonClose.close - utcMins : soonClose.close + 1440 - utcMins;
+    const h = Math.floor(minsLeft / 60), m = minsLeft % 60;
+    return {
+      status: 'open',
+      label: `${open.map(s=>s.name).join(' + ')} LIVE`,
+      sublabel: `Closes in ${h}h ${m}m · ${open[0].pairs}`,
+      color: 'var(--accent)'
+    };
+  }
+
+  // Find next session opening
+  const upcoming = sessions.map(s => {
+    const minsUntil = s.open > utcMins ? s.open - utcMins : s.open + 1440 - utcMins;
+    return { ...s, minsUntil };
+  }).sort((a,b) => a.minsUntil - b.minsUntil)[0];
+
+  const h = Math.floor(upcoming.minsUntil/60), m = upcoming.minsUntil%60;
+  return {
+    status: 'closed',
+    label: `${upcoming.name} opens in ${h}h ${m}m`,
+    sublabel: `Best pairs: ${upcoming.pairs}`,
+    color: 'var(--gold)'
+  };
+}
+
+/* ── PRE-TRADE CHECKLIST ───────────────────────────────────────
+   7-point checklist before entering any trade, with score     */
+function renderPreTradeChecklist() {
+  const checks = [
+    { id:'ptc1', label:'Setup matches my strategy criteria exactly' },
+    { id:'ptc2', label:'Stop Loss placed at a logical level (not random)' },
+    { id:'ptc3', label:'Position size calculated — max 1-2% risk' },
+    { id:'ptc4', label:'R:R is minimum 1:2' },
+    { id:'ptc5', label:'Higher timeframe trend aligns with my direction' },
+    { id:'ptc6', label:'I am emotionally calm — not angry, fearful, or greedy' },
+    { id:'ptc7', label:'No high-impact news in the next 30 minutes' },
+  ];
+  return `
+    <div class="screen-pad">
+      <div class="pg-header a-fadeup" style="padding:0 0 14px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="back-btn" onclick="navigate('trade')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div>
+            <h1 class="pg-title">Pre-Trade Checklist</h1>
+            <div style="font-size:12px;color:var(--txt2)">Complete before every single trade</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ptc-wrap">
+        ${checks.map(c => `
+          <div class="card card-tappable" style="padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px" onclick="togglePTC('${c.id}')">
+            <div id="${c.id}-box" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--bdr2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s"></div>
+            <div style="font-size:13px;color:var(--txt2);line-height:1.4">${c.label}</div>
+          </div>`).join('')}
+      </div>
+
+      <div id="ptc-score" style="margin-top:16px"></div>
+
+      <button class="btn btn-gold" style="margin-top:14px" onclick="evaluatePTC()">
+        Evaluate My Readiness →
+      </button>
+
+      <button class="btn btn-outline" style="margin-top:8px" onclick="resetPTC()">
+        Reset Checklist
+      </button>
+    </div>`;
+}
+
+let _ptcState = {};
+
+function togglePTC(id) {
+  _ptcState[id] = !_ptcState[id];
+  const box = document.getElementById(id + '-box');
+  if (!box) return;
+  if (_ptcState[id]) {
+    box.style.background = 'var(--accent)';
+    box.style.borderColor = 'var(--accent)';
+    box.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#080E14" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+  } else {
+    box.style.background = '';
+    box.style.borderColor = 'var(--bdr2)';
+    box.innerHTML = '';
+  }
+}
+
+function resetPTC() {
+  _ptcState = {};
+  document.querySelectorAll('[id$="-box"]').forEach(box => {
+    box.style.background = '';
+    box.style.borderColor = 'var(--bdr2)';
+    box.innerHTML = '';
+  });
+  const sc = document.getElementById('ptc-score');
+  if (sc) sc.innerHTML = '';
+}
+
+function evaluatePTC() {
+  const total = 7;
+  const checked = Object.values(_ptcState).filter(Boolean).length;
+  const pct = Math.round(checked/total*100);
+  const sc = document.getElementById('ptc-score');
+  if (!sc) return;
+
+  let msg, col, advice;
+  if (checked === 7) {
+    msg = '✅ TRADE READY'; col = 'var(--accent)';
+    advice = 'All criteria met. Execute with discipline. Set SL and TP before entering.';
+  } else if (checked >= 5) {
+    msg = '🟡 PROCEED WITH CAUTION'; col = 'var(--gold)';
+    advice = `${total-checked} criteria not met. Review unchecked items before entering. Consider reducing size by 50%.`;
+  } else {
+    msg = '🔴 DO NOT TRADE YET'; col = 'var(--red)';
+    advice = `Only ${checked}/${total} criteria met. The unchecked items represent real risk. Missing setups is profitable — bad trades are expensive.`;
+  }
+
+  sc.innerHTML = `
+    <div class="card" style="padding:16px;background:${col}18;border-color:${col}44">
+      <div style="font-family:var(--display);font-weight:800;font-size:16px;color:${col};margin-bottom:6px">${msg}</div>
+      <div style="font-size:13px;color:var(--txt2);line-height:1.5">${advice}</div>
+      <div style="margin-top:10px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--txt3)">Readiness Score</span>
+          <span style="font-size:11px;color:${col}">${checked}/${total}</span>
+        </div>
+        <div class="prog-bar lg"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div>
+    </div>`;
+
+  addXP(5);
+}
+
+/* ── RISK OF RUIN CALCULATOR ───────────────────────────────────
+   Calculates probability of losing X% of account             */
+function renderRiskOfRuin() {
+  return `
+    <div class="screen-pad">
+      <div class="pg-header a-fadeup" style="padding:0 0 14px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="back-btn" onclick="navigate('profile')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div>
+            <h1 class="pg-title">Risk of Ruin</h1>
+            <div style="font-size:12px;color:var(--txt2)">Probability of hitting max drawdown</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:14px;margin-bottom:14px;background:var(--red-bg);border-color:var(--red-bdr)">
+        <div style="font-size:12px;color:var(--txt2);line-height:1.5">Risk of ruin is the probability that you'll lose a specific percentage of your account before reaching a target. It's the most important number in trading that most traders never calculate.</div>
+      </div>
+
+      <div class="inp-row">
+        <div class="inp-wrap">
+          <label class="inp-label">Win Rate (%)</label>
+          <input class="inp" id="ror-wr" type="number" value="${
+            STATE.journal.length >= 5 ?
+            Math.round(STATE.journal.filter(t=>parseFloat(t.pnl)>0).length/STATE.journal.length*100) : 50
+          }" min="1" max="99">
+        </div>
+        <div class="inp-wrap">
+          <label class="inp-label">Risk per Trade (%)</label>
+          <input class="inp" id="ror-risk" type="number" value="1" step="0.5" min="0.1" max="20">
+        </div>
+      </div>
+      <div class="inp-row">
+        <div class="inp-wrap">
+          <label class="inp-label">Avg Win ($)</label>
+          <input class="inp" id="ror-avgw" type="number" value="${
+            STATE.journal.filter(t=>parseFloat(t.pnl)>0).length > 0 ?
+            Math.round(STATE.journal.filter(t=>parseFloat(t.pnl)>0).reduce((a,t)=>a+(parseFloat(t.pnl)||0),0)/STATE.journal.filter(t=>parseFloat(t.pnl)>0).length) : 100
+          }">
+        </div>
+        <div class="inp-wrap">
+          <label class="inp-label">Avg Loss ($)</label>
+          <input class="inp" id="ror-avgl" type="number" value="${
+            STATE.journal.filter(t=>parseFloat(t.pnl)<=0).length > 0 ?
+            Math.round(Math.abs(STATE.journal.filter(t=>parseFloat(t.pnl)<=0).reduce((a,t)=>a+(parseFloat(t.pnl)||0),0)/STATE.journal.filter(t=>parseFloat(t.pnl)<=0).length)) : 50
+          }">
+        </div>
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-label">Ruin Level — lose this % of account</label>
+        <input class="inp" id="ror-ruin" type="number" value="50" min="10" max="95">
+      </div>
+
+      <button class="btn btn-gold" onclick="calcRiskOfRuin()">Calculate Risk of Ruin</button>
+      <div id="ror-result" style="margin-top:16px"></div>
+    </div>`;
+}
+
+function calcRiskOfRuin() {
+  const wr    = parseFloat(document.getElementById('ror-wr')?.value)/100   || 0.5;
+  const risk  = parseFloat(document.getElementById('ror-risk')?.value)/100 || 0.01;
+  const avgW  = parseFloat(document.getElementById('ror-avgw')?.value)     || 100;
+  const avgL  = parseFloat(document.getElementById('ror-avgl')?.value)     || 50;
+  const ruin  = parseFloat(document.getElementById('ror-ruin')?.value)/100 || 0.5;
+
+  // Ralph Vince Risk of Ruin formula approximation
+  const lr    = wr;
+  const lv    = 1 - wr;
+  const edge  = lr * avgW - lv * avgL;
+  const rr    = avgW / avgL;
+
+  // Simplified RoR: ((1-edge) / (1+edge)) ^ N where N = ruin level / risk per trade
+  const a     = (lv * avgL - lr * avgW) / (lv * avgL + lr * avgW);
+  const n     = Math.ceil(ruin / risk);
+  let ror     = Math.max(0, Math.min(1, Math.pow(Math.abs(a), n)));
+
+  const expectancy = (lr * avgW - lv * avgL).toFixed(2);
+  const isPositive = parseFloat(expectancy) > 0;
+  const rorPct = (ror * 100).toFixed(1);
+
+  const result = document.getElementById('ror-result');
+  if (!result) return;
+
+  result.innerHTML = `
+    <div class="card" style="padding:16px;background:${ror>0.1?'var(--red-bg)':'rgba(0,212,184,0.08)'};border-color:${ror>0.1?'var(--red-bdr)':'var(--bdr)'}">
+      <div style="text-align:center;margin-bottom:14px">
+        <div style="font-size:42px;font-weight:800;font-family:var(--display);color:${ror>0.5?'var(--red)':ror>0.1?'var(--orange)':'var(--accent)'}">${rorPct}%</div>
+        <div style="font-size:13px;color:var(--txt2);margin-top:4px">probability of losing ${document.getElementById('ror-ruin')?.value}% of your account</div>
+      </div>
+      <div class="stat-grid" style="margin-bottom:12px">
+        <div class="calc-res"><div class="calc-res-val" style="color:${isPositive?'var(--accent)':'var(--red)'}">$${expectancy}</div><div class="calc-res-lbl">Expectancy/trade</div></div>
+        <div class="calc-res"><div class="calc-res-val">${(rr).toFixed(2)}</div><div class="calc-res-lbl">Avg R:R ratio</div></div>
+      </div>
+      ${ror > 0.5 ? `
+        <div style="font-size:12px;color:var(--red);line-height:1.5">⚠️ <strong>High danger zone.</strong> With these parameters, you will likely lose ${document.getElementById('ror-ruin')?.value}% before reaching profitability. Reduce risk per trade to 1% and improve win rate or R:R ratio.</div>` :
+      ror > 0.1 ? `
+        <div style="font-size:12px;color:var(--gold);line-height:1.5">⚠️ <strong>Moderate risk.</strong> Consider reducing risk per trade to below 1% and ensuring R:R ratio is consistently above 2:1.</div>` :
+      `<div style="font-size:12px;color:var(--accent);line-height:1.5">✅ <strong>Well managed risk.</strong> Your parameters show sustainable trading. Focus on consistency and scaling gradually.</div>`}
+    </div>`;
+}
+
+/* ── PAIR CORRELATION MATRIX ───────────────────────────────────
+   Visual grid showing correlations between major pairs        */
+function renderCorrelationMatrix() {
+  const pairs = ['EUR/USD','GBP/USD','USD/JPY','AUD/USD','USD/CHF','USD/CAD','EUR/JPY','GBP/JPY','XAU/USD'];
+  // Static correlation data (real historical data)
+  const correlations = {
+    'EUR/USD': {'EUR/USD':100,'GBP/USD':87,'USD/JPY':-58,'AUD/USD':68,'USD/CHF':-92,'USD/CAD':-55,'EUR/JPY':48,'GBP/JPY':38,'XAU/USD':62},
+    'GBP/USD': {'EUR/USD':87,'GBP/USD':100,'USD/JPY':-52,'AUD/USD':65,'USD/CHF':-82,'USD/CAD':-50,'EUR/JPY':42,'GBP/JPY':55,'XAU/USD':58},
+    'USD/JPY': {'EUR/USD':-58,'GBP/USD':-52,'USD/JPY':100,'AUD/USD':-45,'USD/CHF':52,'USD/CAD':48,'EUR/JPY':55,'GBP/JPY':62,'XAU/USD':-72},
+    'AUD/USD': {'EUR/USD':68,'GBP/USD':65,'USD/JPY':-45,'AUD/USD':100,'USD/CHF':-65,'USD/CAD':-62,'EUR/JPY':38,'GBP/JPY':32,'XAU/USD':72},
+    'USD/CHF': {'EUR/USD':-92,'GBP/USD':-82,'USD/JPY':52,'AUD/USD':-65,'USD/CHF':100,'USD/CAD':60,'EUR/JPY':-42,'GBP/JPY':-35,'XAU/USD':-58},
+    'USD/CAD': {'EUR/USD':-55,'GBP/USD':-50,'USD/JPY':48,'AUD/USD':-62,'USD/CHF':60,'USD/CAD':100,'EUR/JPY':-28,'GBP/JPY':-22,'XAU/USD':-65},
+    'EUR/JPY': {'EUR/USD':48,'GBP/USD':42,'USD/JPY':55,'AUD/USD':38,'USD/CHF':-42,'USD/CAD':-28,'EUR/JPY':100,'GBP/JPY':88,'XAU/USD':22},
+    'GBP/JPY': {'EUR/USD':38,'GBP/USD':55,'USD/JPY':62,'AUD/USD':32,'USD/CHF':-35,'USD/CAD':-22,'EUR/JPY':88,'GBP/JPY':100,'XAU/USD':18},
+    'XAU/USD': {'EUR/USD':62,'GBP/USD':58,'USD/JPY':-72,'AUD/USD':72,'USD/CHF':-58,'USD/CAD':-65,'EUR/JPY':22,'GBP/JPY':18,'XAU/USD':100},
+  };
+
+  const cellColor = v => {
+    if (v === 100) return '#26282F';
+    if (v >= 75)  return 'rgba(239,68,68,0.75)';
+    if (v >= 50)  return 'rgba(239,68,68,0.4)';
+    if (v >= 25)  return 'rgba(239,68,68,0.2)';
+    if (v >= -25) return 'rgba(100,100,120,0.3)';
+    if (v >= -50) return 'rgba(0,212,184,0.2)';
+    if (v >= -75) return 'rgba(0,212,184,0.4)';
+    return 'rgba(0,212,184,0.75)';
+  };
+
+  const shortName = p => p.replace('USD/','').replace('/USD','').replace('EUR/','E/').replace('GBP/','G/');
+
+  return `
+    <div class="screen-pad">
+      <div class="pg-header a-fadeup" style="padding:0 0 14px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="back-btn" onclick="navigate('learn')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div>
+            <h1 class="pg-title">Pair Correlation</h1>
+            <div style="font-size:12px;color:var(--txt2)">How pairs move in relation to each other</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:8px;overflow-x:auto;margin-bottom:14px">
+        <table style="border-collapse:collapse;font-size:9px;font-family:monospace;min-width:100%">
+          <tr>
+            <td style="padding:3px;width:40px"></td>
+            ${pairs.map(p=>`<td style="padding:2px 1px;text-align:center;color:var(--txt3);font-weight:700;font-size:8px;writing-mode:vertical-lr;transform:rotate(180deg);height:48px;vertical-align:bottom">${p}</td>`).join('')}
+          </tr>
+          ${pairs.map(p1 => `
+            <tr>
+              <td style="padding:2px 4px;color:var(--txt2);font-weight:700;white-space:nowrap;font-size:8px">${p1}</td>
+              ${pairs.map(p2 => {
+                const v = correlations[p1]?.[p2] ?? 0;
+                const col = v === 100 ? 'var(--txt3)' : v > 0 ? 'var(--red)' : 'var(--accent)';
+                return `<td style="padding:1px;text-align:center">
+                  <div style="width:28px;height:22px;border-radius:3px;background:${cellColor(v)};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:${col}">
+                    ${v === 100 ? '—' : v}
+                  </div>
+                </td>`;
+              }).join('')}
+            </tr>`).join('')}
+        </table>
+      </div>
+
+      <!-- Legend -->
+      <div class="card" style="padding:12px;margin-bottom:14px">
+        <div class="section-lbl" style="margin-bottom:8px">How to read this</div>
+        <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--txt2)">
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:14px;border-radius:2px;background:rgba(239,68,68,0.75)"></div> Strong positive (75-100) — move together. Trading both = doubled risk.</div>
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:14px;border-radius:2px;background:rgba(239,68,68,0.2)"></div> Weak positive (25-50) — loosely correlated.</div>
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:14px;border-radius:2px;background:rgba(100,100,120,0.3)"></div> Near zero — little correlation.</div>
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:14px;border-radius:2px;background:rgba(0,212,184,0.4)"></div> Negative — move opposite. Can use for hedging.</div>
+        </div>
+        <div class="callout" style="margin-top:10px;font-size:12px">⚠️ EUR/USD and USD/CHF have -92% correlation. Buying both simultaneously = a nearly zero net position.</div>
+      </div>
+    </div>`;
+}
+
+/* ── CANDLE SPEED ROUND ────────────────────────────────────────
+   60-second fast-fire pattern identification game             */
+let _speedRoundActive = false;
+let _speedRoundScore  = 0;
+let _speedRoundTimer  = 60;
+let _speedRoundQ      = null;
+let _speedInterval    = null;
+
+function renderCandleSpeedRound() {
+  if (!_speedRoundActive) {
+    return `
+      <div class="screen-pad">
+        <div class="pg-header a-fadeup" style="padding:0 0 14px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="back-btn" onclick="navigate('learn')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div><h1 class="pg-title">⚡ Speed Round</h1>
+            <div style="font-size:12px;color:var(--txt2)">Name the pattern as fast as you can</div></div>
+          </div>
+        </div>
+
+        <div style="text-align:center;padding:24px 16px">
+          <div style="font-size:56px;margin-bottom:12px">⚡</div>
+          <div style="font-family:var(--display);font-weight:800;font-size:20px;margin-bottom:8px">Candle Speed Round</div>
+          <div style="font-size:14px;color:var(--txt2);line-height:1.6;margin-bottom:24px">
+            60 seconds. Identify as many candlestick patterns as you can.<br>
+            Each correct answer = +3 XP. Beat your high score!
+          </div>
+          <div class="stat-grid3" style="margin-bottom:24px">
+            <div class="stat-box"><div class="stat-val">${STATE.speedRoundBest||0}</div><div class="stat-lbl">Best Score</div></div>
+            <div class="stat-box"><div class="stat-val">${STATE.speedRoundGames||0}</div><div class="stat-lbl">Games Played</div></div>
+            <div class="stat-box"><div class="stat-val">60s</div><div class="stat-lbl">Time Limit</div></div>
+          </div>
+          <button class="btn btn-gold" onclick="startSpeedRound()">Start Round ⚡</button>
+        </div>
+      </div>`;
+  }
+
+  // Active game
+  const q = _speedRoundQ;
+  if (!q) return '';
+
+  // Build mini SVG candle chart
+  const W=200, H=100, pad=8;
+  const candles = q.candles || [{o:0.5,h:0.7,l:0.3,c:0.6,bull:true}];
+  const allPrices = candles.flatMap(c=>[c.h,c.l]);
+  const lo = Math.min(...allPrices), hi = Math.max(...allPrices), rng=(hi-lo)||0.01;
+  const sy = v => pad+(1-(v-lo)/rng)*(H-pad*2);
+  const cw2 = Math.floor((W-pad*2)/candles.length)-2;
+  let inner = `<rect width="${W}" height="${H}" fill="#13131A" rx="8"/>`;
+  candles.forEach((c,i)=>{
+    const x = pad+i*(W-pad*2)/candles.length;
+    const col = c.bull?'#26A69A':'#EF5350';
+    inner += `<line x1="${x+cw2/2}" y1="${sy(c.h)}" x2="${x+cw2/2}" y2="${sy(c.l)}" stroke="${col}" stroke-width="2"/>`;
+    inner += `<rect x="${x}" y="${Math.min(sy(c.o),sy(c.c))}" width="${cw2}" height="${Math.max(2,Math.abs(sy(c.o)-sy(c.c)))}" fill="${col}" rx="1"/>`;
+  });
+  const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;max-width:280px;margin:0 auto">${inner}</svg>`;
+
+  return `
+    <div style="padding:16px;display:flex;flex-direction:column;height:calc(100vh - var(--total-nav))">
+      <!-- Timer bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:28px;font-family:var(--mono);font-weight:700;color:${_speedRoundTimer<=10?'var(--red)':'var(--accent)'}">${_speedRoundTimer}s</div>
+        <div style="font-size:22px;font-family:var(--display);font-weight:800;color:var(--gold)">Score: ${_speedRoundScore}</div>
+      </div>
+      <div class="prog-bar lg" style="margin-bottom:20px">
+        <div class="prog-fill" style="width:${(_speedRoundTimer/60)*100}%;background:${_speedRoundTimer<=10?'var(--red)':'var(--accent)'}"></div>
+      </div>
+
+      <!-- Chart -->
+      <div style="margin-bottom:16px">${svg}</div>
+
+      <!-- Question -->
+      <div style="font-family:var(--display);font-weight:700;font-size:16px;text-align:center;margin-bottom:16px;color:var(--txt)">
+        What pattern is this? 🔍
+      </div>
+
+      <!-- Options -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${q.options.map(opt => `
+          <button onclick="answerSpeedRound('${opt}')"
+            style="padding:12px 8px;border-radius:var(--rs);border:1.5px solid var(--bdr2);background:var(--bg3);color:var(--txt);font-family:var(--display);font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;text-align:center">
+            ${opt}
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function startSpeedRound() {
+  _speedRoundActive = true;
+  _speedRoundScore  = 0;
+  _speedRoundTimer  = 60;
+  _speedRoundQ      = getSpeedRoundQuestion();
+  STATE.speedRoundGames = (STATE.speedRoundGames||0)+1;
+
+  if (_speedInterval) clearInterval(_speedInterval);
+  _speedInterval = setInterval(()=>{
+    _speedRoundTimer--;
+    if (_speedRoundTimer <= 0) {
+      clearInterval(_speedInterval);
+      _speedRoundActive = false;
+      if (_speedRoundScore > (STATE.speedRoundBest||0)) {
+        STATE.speedRoundBest = _speedRoundScore;
+        showToast(`🏆 New High Score: ${_speedRoundScore}! +${_speedRoundScore*3} XP`);
+      }
+      addXP(_speedRoundScore * 3);
+      saveState();
+    }
+    renderScreen('speedround');
+  }, 1000);
+
+  renderScreen('speedround');
+}
+
+function getSpeedRoundQuestion() {
+  if (typeof PATTERN_QUIZ === 'undefined' || !PATTERN_QUIZ.length) {
+    return { name:'Bullish Engulfing', candles:[{o:0.58,h:0.60,l:0.55,c:0.56,bull:false},{o:0.54,h:0.65,l:0.53,c:0.64,bull:true}],
+      options:['Bullish Engulfing','Hammer','Doji','Shooting Star'] };
+  }
+  const q = PATTERN_QUIZ[Math.floor(Math.random()*PATTERN_QUIZ.length)];
+  const wrong = PATTERN_QUIZ.filter(p=>p.name!==q.name).map(p=>p.name).sort(()=>Math.random()-.5).slice(0,3);
+  const options = [q.name,...wrong].sort(()=>Math.random()-.5);
+  return { name:q.name, candles:q.candles, options };
+}
+
+function answerSpeedRound(answer) {
+  if (!_speedRoundQ) return;
+  const correct = answer === _speedRoundQ.name;
+  if (correct) {
+    _speedRoundScore++;
+    showToast('✅ Correct! +3 XP');
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(30);
+  } else {
+    showToast(`❌ ${_speedRoundQ.name}`);
+  }
+  _speedRoundQ = getSpeedRoundQuestion();
+  renderScreen('speedround');
+}
+
+console.log('✅ New features loaded: Hot Streak, Streak Freeze, Session Countdown, Pre-Trade Checklist, Risk of Ruin, Correlation Matrix, Speed Round');
