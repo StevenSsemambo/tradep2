@@ -34,23 +34,23 @@
   --gold-glow:  rgba(0,212,184,0.20);
 
   /* Borders */
-  --bdr:        rgba(0,212,184,0.18);
-  --bdr2:       rgba(255,255,255,0.07);
-  --bdr3:       rgba(255,255,255,0.03);
+  --bdr:        rgba(0,212,184,0.22);
+  --bdr2:       rgba(255,255,255,0.08);
+  --bdr3:       rgba(255,255,255,0.04);
 
-  /* Backgrounds — deep obsidian, not pure black */
-  --bg:    #080E14;
-  --bg2:   #0F1820;
-  --bg3:   #172230;
-  --bg4:   #1E2C3C;
-  --bg5:   #253648;
-  --glass: rgba(8,14,20,0.92);
+  /* Backgrounds — rich deep teal-slate, premium trading desk */
+  --bg:    #0A1628;
+  --bg2:   #0F1E35;
+  --bg3:   #152540;
+  --bg4:   #1B2D4D;
+  --bg5:   #213558;
+  --glass: rgba(10,22,40,0.94);
 
-  /* Text — cool white with warm undertone */
-  --txt:   #E8F0F8;
-  --txt2:  #8BA4BE;
-  --txt3:  #4D6880;
-  --txt4:  #2A3D52;
+  /* Text — crisp on deep teal-slate */
+  --txt:   #ECF3FC;
+  --txt2:  #90AECA;
+  --txt3:  #52718E;
+  --txt4:  #2E4A62;
 
   /* Semantic colours */
   --green:     #00D4B8;
