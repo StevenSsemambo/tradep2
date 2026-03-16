@@ -34,23 +34,23 @@
   --gold-glow:  rgba(0,212,184,0.20);
 
   /* Borders */
-  --bdr:        rgba(0,212,184,0.22);
-  --bdr2:       rgba(255,255,255,0.08);
-  --bdr3:       rgba(255,255,255,0.04);
+  --bdr:        rgba(80,150,220,0.30);
+  --bdr2:       rgba(80,150,220,0.15);
+  --bdr3:       rgba(80,150,220,0.08);
 
-  /* Backgrounds — deep ocean blue. Clearly BLUE, not black. */
-  --bg:    #0A1628;
-  --bg2:   #0D1F38;
-  --bg3:   #112848;
-  --bg4:   #163158;
-  --bg5:   #1B3A68;
-  --glass: rgba(10,22,40,0.95);
+  /* Backgrounds — light cloudy sky blue. Bright, airy, premium. */
+  --bg:    #D8EEFF;
+  --bg2:   #EBF7FF;
+  --bg3:   #F4FBFF;
+  --bg4:   #FFFFFF;
+  --bg5:   #FAFCFF;
+  --glass: rgba(200,230,248,0.88);
 
-  /* Text — crisp on deep teal-slate */
-  --txt:   #ECF3FC;
-  --txt2:  #90AECA;
-  --txt3:  #52718E;
-  --txt4:  #2E4A62;
+  /* Text — dark on light sky blue */
+  --txt:   #0F2744;
+  --txt2:  #2D5480;
+  --txt3:  #5A7FA0;
+  --txt4:  #8AAEC8;
 
   /* Semantic colours */
   --green:     #00D4B8;
