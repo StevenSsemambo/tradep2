@@ -8,16 +8,17 @@
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
-  background: #080E14;
+  background: #0A1628;
 }
 
 /* Multi-layer animated gradient background */
 .splash-mesh {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 70% 60% at 15% 25%, rgba(0,212,184,0.18) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 70% at 85% 75%, rgba(0,212,184,0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 90% 40% at 50% 50%, rgba(8,14,20,0.9) 0%, transparent 100%);
+    radial-gradient(ellipse 70% 60% at 15% 25%, rgba(0,212,184,0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 70% at 85% 75%, rgba(0,180,220,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 70% 20%, rgba(100,120,255,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 40% at 50% 50%, rgba(10,22,40,0.92) 0%, transparent 100%);
   animation: meshPulse 8s ease-in-out infinite alternate;
 }
 @keyframes meshPulse {
