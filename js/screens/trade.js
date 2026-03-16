@@ -38,6 +38,10 @@ const TRADE_PAIRS = [
 
 const TF_CANDLE_COUNT = { M1:200, M5:150, M15:120, H1:100, H4:80, D1:60 };
 
+/* Real-time duration for each candle (in ms) — controls how long a candle forms */
+const TF_REAL_MS = { M1:12000, M5:20000, M15:35000, H1:55000, H4:80000, D1:110000 };
+let _candleFormingStart = Date.now();
+
 /* Session-aware volatility — higher during London/NY overlap */
 function getSessionVol(tf) {
   const hr = new Date().getUTCHours();
@@ -468,9 +472,12 @@ function generateTFCandles(basePrice, tf) {
     const high  = Math.max(open, close) + wickH;
     const low   = Math.min(open, close) - wickL;
     const volume = Math.floor(600 + Math.random() * 5000 + Math.abs(body) * 80000);
-    candles.push({ open, high, low, close, volume, bull: close >= open, time: Date.now() - (count - i) * getTFMs(tf) });
+    candles.push({ open, high, low, close, volume, bull: close >= open, _sealed: true, time: Date.now() - (count - i) * getTFMs(tf) });
     price = close;
   }
+  // Mark last candle as forming (unsealed)
+  if (candles.length > 0) candles[candles.length - 1]._sealed = false;
+  _candleFormingStart = Date.now();
   return candles;
 }
 
@@ -485,6 +492,7 @@ function terminalChangePair(pair) {
   _chartCandles = {};
   _chartOffset  = 0;
   _drawLines    = [];
+  _candleFormingStart = Date.now();
   renderScreen('trade');
   setTimeout(initTerminal, 80);
 }
@@ -492,6 +500,7 @@ function terminalChangePair(pair) {
 function terminalSetTF(tf) {
   _chartTF    = tf;
   _chartOffset = 0;
+  _candleFormingStart = Date.now();
   ['M1','M5','M15','H1','H4','D1'].forEach(t => {
     const btn = document.getElementById('tf-' + t);
     if (!btn) return;
@@ -535,38 +544,40 @@ function terminalScreenshot() {
 
 /* ── PRICE TICK ──────────────────────────────────────────── */
 function terminalPriceTick() {
-  // Smooth Brownian motion - small realistic tick movements
-  const vol = getSessionVol(_chartTF) * 0.08;
+  // Micro tick: very small smooth movement
+  const vol   = getSessionVol(_chartTF) * 0.04;
   const drift = (Math.random() - 0.499) * vol;
-  _simCurrentPrice = Math.max(_simCurrentPrice + drift, 0.01);
+  _simCurrentPrice = Math.max(_simCurrentPrice + drift, 0.0001);
 
-  const key = _simCurrentPair + '_' + _chartTF;
+  const key     = _simCurrentPair + '_' + _chartTF;
   const candles = _chartCandles[key];
-  if (candles && candles.length > 0) {
-    const last = candles[candles.length - 1];
+  if (!candles || !candles.length) return;
+
+  const last = candles[candles.length - 1];
+
+  // Only the FORMING (last, unsealed) candle gets updated each tick
+  if (!last._sealed) {
     last.close  = _simCurrentPrice;
-    last.high   = Math.max(last.high, _simCurrentPrice);
-    last.low    = Math.min(last.low,  _simCurrentPrice);
+    last.high   = Math.max(last.high,  _simCurrentPrice);
+    last.low    = Math.min(last.low,   _simCurrentPrice);
     last.bull   = last.close >= last.open;
-    last.volume = (last.volume || 1000) + Math.floor(Math.random() * 60);
-    if (Math.random() < 0.012) {
-      // Create new candle from current price with realistic body
-      const newVol = getSessionVol(_chartTF) * 1.5;
-      const c = candles[candles.length - 1];
-      const newOpen  = _simCurrentPrice;
-      const newClose = _simCurrentPrice + (Math.random() - 0.48) * newVol;
-      const newHigh  = Math.max(newOpen, newClose) + Math.random() * newVol * 0.4;
-      const newLow   = Math.min(newOpen, newClose) - Math.random() * newVol * 0.4;
-      candles.push({
-        open: newOpen, high: newHigh, low: newLow, close: newClose,
-        bull: newClose >= newOpen, volume: Math.floor(800 + Math.random()*3000),
-        time: Date.now()
-      });
-      if (candles.length > TF_CANDLE_COUNT[_chartTF] + 30) {
-        candles.shift();
-        if (_chartOffset > 0) _chartOffset = Math.max(0, _chartOffset - 1);
-      }
+    last.volume = (last.volume || 0) + Math.floor(Math.random() * 80 + 20);
+  }
+
+  // Check if this candle's time has expired → seal it and start a new one
+  const duration = TF_REAL_MS[_chartTF] || 30000;
+  if (Date.now() - _candleFormingStart >= duration) {
+    last._sealed = true;
+    const newOpen = last.close;
+    candles.push({
+      open: newOpen, high: newOpen, low: newOpen, close: newOpen,
+      volume: 0, bull: true, _sealed: false, time: Date.now()
+    });
+    if (candles.length > TF_CANDLE_COUNT[_chartTF] + 30) {
+      candles.shift();
+      if (_chartOffset > 0) _chartOffset = Math.max(0, _chartOffset - 1);
     }
+    _candleFormingStart = Date.now();
   }
 
   /* Update price display */
