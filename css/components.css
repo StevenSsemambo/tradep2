@@ -11,7 +11,43 @@ input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
 /* BASE */
-body{font-family:var(--body,'DM Sans',sans-serif);background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow:hidden;height:100vh;height:100dvh}
+body{
+  font-family:var(--body,'DM Sans',sans-serif);
+  background:var(--bg);
+  color:var(--txt);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow:hidden;
+  height:100vh;
+  height:100dvh;
+}
+/* Subtle grid texture overlay — gives depth without being distracting */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  background-image:
+    linear-gradient(rgba(0,212,184,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,184,0.025) 1px, transparent 1px);
+  background-size:48px 48px;
+}
+/* Ambient glow in top-left — trading console vibe */
+body::after{
+  content:'';
+  position:fixed;
+  top:-120px;
+  left:-80px;
+  width:400px;
+  height:400px;
+  pointer-events:none;
+  z-index:0;
+  background:radial-gradient(circle, rgba(0,212,184,0.06) 0%, transparent 65%);
+}
+#app{position:relative;z-index:1}
 
 /* APP SHELL */
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:540px;margin:0 auto;position:relative;z-index:1}
@@ -23,11 +59,12 @@ body{font-family:var(--body,'DM Sans',sans-serif);background:var(--bg);color:var
 .nav-grid{position:relative;display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav-h,62px);padding:0 2px}
 .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--txt3);transition:color .2s;padding:6px 0;position:relative;-webkit-tap-highlight-color:transparent;border:none;background:none}
 .nav-item.active{color:var(--accent)}
-.nav-item.active .nav-icon::after{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:20px;height:2px;background:var(--accent);border-radius:1px;box-shadow:0 0 8px var(--accent-glow)}
+/* Active indicator: small teal dot ABOVE the nav bar, not inside icon */
+.nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:2px;background:var(--accent);border-radius:0 0 3px 3px;box-shadow:0 2px 8px var(--accent-glow)}
 .nav-item:active{transform:scale(.88)}
 .nav-icon{position:relative;display:flex;align-items:center;justify-content:center}
 .nav-icon svg{width:21px;height:21px;transition:transform .2s}
-.nav-item.active .nav-icon svg{transform:scale(1.1)}
+.nav-item.active .nav-icon svg{transform:scale(1.05);stroke-width:2.2}
 .nav-label{font-size:9px;font-family:var(--display);font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 
 /* TICKER — HORIZONTAL MARQUEE */
