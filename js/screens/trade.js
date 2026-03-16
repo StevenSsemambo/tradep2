@@ -297,8 +297,10 @@ function initTerminal() {
     if (_chartIsDragging) {
       const dx  = e.clientX - _chartDragStartX;
       const cds = getChartCandles();
-      const cw  = canvas.width / Math.floor(50 * _chartZoom);
-      _chartOffset = Math.max(0, Math.min(cds.length - 10, _chartDragStartOff + Math.round(-dx / cw)));
+      const visCount = Math.max(10, Math.floor(50 * _chartZoom));
+      const cw  = canvas.width / visCount;
+      const newOff = _chartDragStartOff + Math.round(-dx / cw);
+      _chartOffset = Math.max(0, Math.min(Math.max(0, cds.length - visCount), newOff));
       renderChart();
     } else {
       renderChartCrosshair(e.offsetX, e.offsetY);
@@ -342,8 +344,11 @@ function onChartTouchMove(e) {
     const dx = e.touches[0].clientX - _touchStartX;
     const canvas = document.getElementById('main-chart');
     if (!canvas) return;
-    const cw = canvas.width / Math.floor(50 * _chartZoom);
-    _chartOffset = Math.max(0, Math.min(getChartCandles().length - 10, _touchStartOff + Math.round(-dx / cw)));
+    const cds = getChartCandles();
+    const visCount = Math.max(10, Math.floor(50 * _chartZoom));
+    const cw = canvas.width / visCount;
+    const newOff = _touchStartOff + Math.round(-dx / cw);
+    _chartOffset = Math.max(0, Math.min(Math.max(0, cds.length - visCount), newOff));
     renderChart();
   } else if (e.touches.length === 2) {
     const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -540,9 +545,13 @@ function terminalPriceTick() {
     last.low    = Math.min(last.low,  _simCurrentPrice);
     last.bull   = last.close >= last.open;
     last.volume = (last.volume || 1000) + Math.floor(Math.random() * 60);
-    if (Math.random() < 0.06) {
+    if (Math.random() < 0.04) {
       candles.push(generateTFCandles(_simCurrentPrice, _chartTF).pop());
-      if (candles.length > TF_CANDLE_COUNT[_chartTF] + 30) candles.shift();
+      if (candles.length > TF_CANDLE_COUNT[_chartTF] + 30) {
+        candles.shift();
+        // Compensate offset so viewport doesn't jump
+        if (_chartOffset > 0) _chartOffset = Math.max(0, _chartOffset - 1);
+      }
     }
   }
 
@@ -679,10 +688,12 @@ function renderChart() {
 
   /* Visible window */
   const visible  = Math.max(10, Math.floor(50 * _chartZoom));
-  const startIdx = Math.max(0, candles.length - visible - _chartOffset);
-  const endIdx   = Math.max(startIdx + 5, candles.length - _chartOffset);
+  const endIdx   = Math.max(0, candles.length - _chartOffset);
+  const startIdx = Math.max(0, endIdx - visible);
   const vis      = candles.slice(startIdx, endIdx);
   if (!vis.length) return;
+  // Use 'visible' (intended count) for consistent candle width
+  const displayCount = visible; // keeps candle width stable even near left edge
 
   const prices = vis.flatMap(c => [c.high, c.low]);
   let lo = Math.min(...prices), hi = Math.max(...prices);
@@ -695,8 +706,8 @@ function renderChart() {
   const plotH = h - PAD_T - PAD_B;
 
   const sy  = v => PAD_T + (1 - (v - lo) / range) * plotH;
-  const cw  = Math.max(1.5, plotW / vis.length - 1);
-  const cx  = i => PAD_L + (i + 0.5) * (plotW / vis.length);
+  const cw  = Math.max(1.5, plotW / displayCount - 1);
+  const cx  = i => PAD_L + (i + 0.5) * (plotW / displayCount);
 
   /* ── Grid lines ── */
   const gridColor = 'rgba(255,255,255,0.035)';
