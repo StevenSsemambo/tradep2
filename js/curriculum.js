@@ -1663,6 +1663,327 @@ ${candlesSVG([
     sessLesson.content += wrapChart('CHART: Global Trading Sessions — 24-Hour Forex Clock (UTC)', sessChart, 'The London/NY overlap (13:00-17:00 UTC, highlighted in gold) is the most active 4-hour window of the entire trading week. Both major financial centres are simultaneously active, creating the highest volume, tightest spreads, and strongest directional trends.');
   }
 
+
+  // ── DOUBLE TOP & DOUBLE BOTTOM ──
+  const cpLesson2 = CURRICULUM.flatMap(c=>c.lessons).find(l=>l.id==='chart-patterns');
+  if (cpLesson2 && !cpLesson2._dt_injected) {
+    cpLesson2._dt_injected = true;
+
+    // Double Top
+    const doubleTop = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <polyline points="15,120 35,100 55,75 70,60 85,75 100,90 115,60 130,75 145,88 160,100 175,115 190,120" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="70" cy="60" r="5" fill="none" stroke="#EF4444" stroke-width="2"/>
+        <circle cx="115" cy="60" r="5" fill="none" stroke="#EF4444" stroke-width="2"/>
+        <text x="60" y="50" fill="#EF4444" font-size="8" font-family="monospace">TOP 1</text>
+        <text x="105" y="50" fill="#EF4444" font-size="8" font-family="monospace">TOP 2</text>
+        <line x1="15" y1="88" x2="${W-10}" y2="88" stroke="rgba(239,68,68,0.6)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="200" y="85" fill="rgba(239,68,68,0.8)" font-size="8" font-family="monospace">NECKLINE</text>
+        <polyline points="190,120 205,128 220,135" fill="none" stroke="#EF4444" stroke-width="2.5"/>
+        <text x="195" y="143" fill="#EF4444" font-size="8" font-family="monospace">SELL → target = height</text>
+        <line x1="70" y1="60" x2="70" y2="88" stroke="rgba(245,158,11,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="72" y="76" fill="rgba(245,158,11,0.5)" font-size="7" font-family="monospace">↕ measure</text>
+      `);
+    })();
+
+    // Double Bottom
+    const doubleBottom = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <polyline points="15,25 35,45 55,70 70,90 85,75 100,60 115,90 130,75 145,55 160,40 175,28 190,20" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="70" cy="90" r="5" fill="none" stroke="#10B981" stroke-width="2"/>
+        <circle cx="115" cy="90" r="5" fill="none" stroke="#10B981" stroke-width="2"/>
+        <text x="55" y="105" fill="#10B981" font-size="8" font-family="monospace">BOTTOM 1</text>
+        <text x="100" y="105" fill="#10B981" font-size="8" font-family="monospace">BOTTOM 2</text>
+        <line x1="15" y1="57" x2="${W-10}" y2="57" stroke="rgba(16,185,129,0.6)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="200" y="54" fill="rgba(16,185,129,0.8)" font-size="8" font-family="monospace">NECKLINE</text>
+        <polyline points="190,20 205,12 220,6" fill="none" stroke="#10B981" stroke-width="2.5"/>
+        <text x="170" y="8" fill="#10B981" font-size="8" font-family="monospace">BUY → target = height</text>
+        <line x1="70" y1="57" x2="70" y2="90" stroke="rgba(245,158,11,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="72" y="76" fill="rgba(245,158,11,0.5)" font-size="7" font-family="monospace">↕ measure</text>
+      `);
+    })();
+
+    cpLesson2.content += wrapChart('CHART: Double Top — M Pattern (Bearish Reversal)', doubleTop, 'Two nearly equal highs at resistance. The neckline = middle low. Enter SHORT on a candle CLOSE below the neckline. Target = distance from neckline to the tops projected downward. Win rate at key resistance: 62-68%.');
+    cpLesson2.content += wrapChart('CHART: Double Bottom — W Pattern (Bullish Reversal)', doubleBottom, 'Two nearly equal lows at support. The neckline = middle high. Enter LONG on a candle CLOSE above the neckline. Target = distance from neckline to the bottoms projected upward. Win rate at key support: 62-68%.');
+  }
+
+  // ── WEDGES ──
+  const cpLesson3 = CURRICULUM.flatMap(c=>c.lessons).find(l=>l.id==='chart-patterns');
+  if (cpLesson3 && !cpLesson3._wedge_injected) {
+    cpLesson3._wedge_injected = true;
+
+    // Rising Wedge (bearish)
+    const risingWedge = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <line x1="20" y1="110" x2="220" y2="40" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="20" y1="125" x2="220" y2="75" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <polyline points="20,125 45,115 60,108 80,98 100,90 120,82 140,74 160,66 180,58 200,50 220,42" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <text x="25" y="138" fill="#9B9891" font-size="8" font-family="monospace">↗ Rising Wedge = BEARISH</text>
+        <text x="25" y="15" fill="#EF4444" font-size="8" font-family="monospace">Tightening channel rising → momentum weakening</text>
+        <polyline points="220,42 240,55 260,75 275,95" fill="none" stroke="#EF4444" stroke-width="2.5"/>
+        <text x="225" y="112" fill="#EF4444" font-size="8" font-family="monospace">SELL on break↓</text>
+        <text x="225" y="122" fill="#9B9891" font-size="7" font-family="monospace">target = wedge height</text>
+      `);
+    })();
+
+    // Falling Wedge (bullish)
+    const fallingWedge = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <line x1="20" y1="20" x2="220" y2="90" stroke="rgba(16,185,129,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="20" y1="35" x2="220" y2="118" stroke="rgba(16,185,129,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <polyline points="20,35 45,45 60,52 80,60 100,68 120,76 140,82 160,88 180,94 200,100 220,106" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <text x="25" y="138" fill="#9B9891" font-size="8" font-family="monospace">↘ Falling Wedge = BULLISH</text>
+        <text x="25" y="13" fill="#10B981" font-size="8" font-family="monospace">Tightening channel falling → bears losing steam</text>
+        <polyline points="220,106 235,90 250,68 265,45 275,28" fill="none" stroke="#10B981" stroke-width="2.5"/>
+        <text x="225" y="140" fill="#10B981" font-size="8" font-family="monospace">BUY on break↑</text>
+      `);
+    })();
+
+    cpLesson3.content += wrapChart('CHART: Rising Wedge — Deceptive Bullish-Looking Bearish Pattern', risingWedge, 'Price makes higher highs AND higher lows but within converging trendlines. The tightening range shows bulls are losing momentum. When price breaks the lower trendline = bearish. Often catches new traders who see "uptrend" and buy right before the breakdown.');
+    cpLesson3.content += wrapChart('CHART: Falling Wedge — Bullish Reversal or Continuation', fallingWedge, 'Price makes lower lows AND lower highs within converging trendlines but bears are losing momentum. When price breaks the upper trendline = bullish entry. Works both as a reversal pattern (at bottoms) and continuation pattern (during uptrend corrections).');
+  }
+
+  // ── TRIANGLES ──
+  const cpLesson4 = CURRICULUM.flatMap(c=>c.lessons).find(l=>l.id==='chart-patterns');
+  if (cpLesson4 && !cpLesson4._triangle_injected) {
+    cpLesson4._triangle_injected = true;
+
+    // Ascending Triangle
+    const ascTriangle = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <line x1="15" y1="55" x2="225" y2="55" stroke="rgba(239,68,68,0.6)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="17" y="50" fill="rgba(239,68,68,0.7)" font-size="8" font-family="monospace">FLAT RESISTANCE — being tested repeatedly</text>
+        <line x1="15" y1="120" x2="215" y2="60" stroke="rgba(16,185,129,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="17" y="135" fill="rgba(16,185,129,0.7)" font-size="8" font-family="monospace">Rising support = buyers getting more aggressive</text>
+        <polyline points="15,120 35,105 50,98 60,55 70,70 85,82 100,55 110,65 125,72 140,55 150,60 165,62 185,55 195,57" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <polyline points="215,55 240,38 265,22 280,10" fill="none" stroke="#10B981" stroke-width="3"/>
+        <text x="225" y="45" fill="#10B981" font-size="9" font-family="monospace" font-weight="bold">BUY BREAKOUT ▲</text>
+      `);
+    })();
+
+    // Descending Triangle
+    const descTriangle = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <line x1="15" y1="90" x2="225" y2="90" stroke="rgba(16,185,129,0.6)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="17" y="103" fill="rgba(16,185,129,0.7)" font-size="8" font-family="monospace">FLAT SUPPORT — tested repeatedly</text>
+        <line x1="15" y1="30" x2="215" y2="85" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="17" y="25" fill="rgba(239,68,68,0.7)" font-size="8" font-family="monospace">Falling resistance = sellers getting more aggressive</text>
+        <polyline points="15,30 35,45 50,52 60,90 70,78 85,68 100,90 110,82 125,75 140,90 150,86 165,82 185,90 198,88" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <polyline points="215,90 235,105 255,118 270,130 280,138" fill="none" stroke="#EF4444" stroke-width="3"/>
+        <text x="220" y="143" fill="#EF4444" font-size="9" font-family="monospace" font-weight="bold">SELL BREAKDOWN ▼</text>
+      `);
+    })();
+
+    // Symmetrical Triangle
+    const symmTriangle = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <line x1="15" y1="25" x2="195" y2="73" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="15" y1="120" x2="195" y2="73" stroke="rgba(16,185,129,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <polyline points="15,25 40,40 60,50 80,45 100,55 120,52 140,60 160,58 175,63 190,70" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <polyline points="15,120 40,105 60,95 80,100 100,90 120,93 140,84 160,82 175,76 190,73" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <text x="20" y="73" fill="#9B9891" font-size="8" font-family="monospace">Coiling...</text>
+        <polyline points="195,70 215,50 235,35 255,20" fill="none" stroke="#10B981" stroke-width="2.5"/>
+        <text x="200" y="18" fill="#10B981" font-size="8" font-family="monospace">Breakout UP ✓</text>
+        <polyline points="195,75 215,90 235,105 255,120" fill="none" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="200" y="133" fill="#EF4444" font-size="8" font-family="monospace">or DOWN</text>
+        <text x="105" y="140" fill="#9B9891" font-size="8" font-family="monospace">Trade the breakout direction, not before it</text>
+      `);
+    })();
+
+    cpLesson4.content += wrapChart('CHART: Ascending Triangle — Bullish Continuation', ascTriangle, 'Flat resistance (bulls keep testing the same level) combined with rising support (bulls buying at higher and higher lows). Pressure builds until breakout above the flat line. Win rate: 60-65%. Target = height of triangle from breakout point.');
+    cpLesson4.content += wrapChart('CHART: Descending Triangle — Bearish Continuation', descTriangle, 'Flat support (bears keep testing the same level) combined with falling resistance (sellers selling at lower and lower highs). Pressure builds until breakdown below the flat line. Win rate: 60-65%. Mirror of ascending triangle.');
+    cpLesson4.content += wrapChart('CHART: Symmetrical Triangle — Neutral Coil, Trade the Breakout', symmTriangle, 'Both resistance and support converge. Neither bulls nor bears in control — coiling energy. Trade the breakout in whichever direction price closes through the trendline. Never guess direction before the break. Win rate: ~58% with confirmation.');
+  }
+
+  // ── DOWNTREND & CONSOLIDATION ──
+  const taLesson2 = CURRICULUM.flatMap(c=>c.lessons).find(l=>l.id==='trend-analysis');
+  if (taLesson2 && !taLesson2._down_injected) {
+    taLesson2._down_injected = true;
+
+    // Downtrend
+    const downtrend = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <polyline points="15,20 40,35 55,25 75,50 90,38 115,68 130,55 155,85 170,72 195,102 210,88 235,118 250,105" fill="none" stroke="#EF4444" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="40" cy="35" r="3" fill="#EF4444"/>
+        <circle cx="90" cy="38" r="3" fill="#EF4444"/>
+        <circle cx="130" cy="55" r="3" fill="#EF4444"/>
+        <circle cx="170" cy="72" r="3" fill="#EF4444"/>
+        <text x="38" y="28" fill="#EF4444" font-size="8" font-family="monospace">LH</text>
+        <text x="88" y="31" fill="#EF4444" font-size="8" font-family="monospace">LH</text>
+        <text x="128" y="48" fill="#EF4444" font-size="8" font-family="monospace">LH</text>
+        <text x="168" y="65" fill="#EF4444" font-size="8" font-family="monospace">LH</text>
+        <circle cx="75" cy="50" r="3" fill="none" stroke="#EF4444" stroke-width="1.5"/>
+        <circle cx="115" cy="68" r="3" fill="none" stroke="#EF4444" stroke-width="1.5"/>
+        <circle cx="155" cy="85" r="3" fill="none" stroke="#EF4444" stroke-width="1.5"/>
+        <circle cx="195" cy="102" r="3" fill="none" stroke="#EF4444" stroke-width="1.5"/>
+        <text x="73" y="63" fill="#F97316" font-size="8" font-family="monospace">LL</text>
+        <text x="113" y="82" fill="#F97316" font-size="8" font-family="monospace">LL</text>
+        <text x="153" y="99" fill="#F97316" font-size="8" font-family="monospace">LL</text>
+        <text x="193" y="116" fill="#F97316" font-size="8" font-family="monospace">LL</text>
+        <text x="15" y="140" fill="#EF4444" font-size="8" font-family="monospace">DOWNTREND: Lower Highs + Lower Lows — ONLY look to SELL</text>
+      `);
+    })();
+
+    // Consolidation / Range
+    const consolidation = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <line x1="15" y1="45" x2="${W-10}" y2="45" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="15" y1="100" x2="${W-10}" y2="100" stroke="rgba(16,185,129,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="17" y="40" fill="rgba(239,68,68,0.7)" font-size="8" font-family="monospace">RANGE TOP (resistance)</text>
+        <text x="17" y="115" fill="rgba(16,185,129,0.7)" font-size="8" font-family="monospace">RANGE BOTTOM (support)</text>
+        <polyline points="15,72 35,65 50,55 60,45 70,52 85,62 100,70 115,55 125,62 140,72 155,65 165,75 180,100 190,85 205,72 215,62 225,72 240,82 250,72 265,80 275,72" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="90" y="133" fill="#9B9891" font-size="8" font-family="monospace">BUY at support · SELL at resistance · Wait for breakout</text>
+        <rect x="15" y="45" width="${W-25}" height="55" fill="rgba(245,158,11,0.04)" rx="3"/>
+        <text x="115" y="78" fill="rgba(245,158,11,0.4)" font-size="9" font-family="monospace" text-anchor="middle">CONSOLIDATION ZONE</text>
+      `);
+    })();
+
+    taLesson2.content += wrapChart('CHART: Downtrend Structure — Lower Highs (LH) & Lower Lows (LL)', downtrend, 'In a confirmed downtrend each swing high is lower than the last (LH) and each swing low is lower than the last (LL). As long as this holds, only look to SELL. Never buy into a downtrend hoping for a reversal without confirmation — it is the most common beginner mistake.');
+    taLesson2.content += wrapChart('CHART: Consolidation / Range — The Market is Deciding', consolidation, 'Price moves sideways between horizontal support (green) and resistance (red). Neither bulls nor bears in control. Two strategies: range trade by buying support and selling resistance with tight stops, OR wait for a clean breakout with volume and trade the new trend direction.');
+  }
+
+  // ── INVERSE HEAD & SHOULDERS ──
+  const cpLesson5 = CURRICULUM.flatMap(c=>c.lessons).find(l=>l.id==='chart-patterns');
+  if (cpLesson5 && !cpLesson5._ihs_injected) {
+    cpLesson5._ihs_injected = true;
+
+    const inverseHS = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <polyline points="15,35 35,60 50,55 70,80 85,58 105,100 120,75 135,60 155,80 170,57 185,60 200,38" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="70" cy="80" r="5" fill="none" stroke="#10B981" stroke-width="2"/>
+        <text x="55" y="95" fill="#10B981" font-size="8" font-family="monospace">LS</text>
+        <circle cx="105" cy="100" r="5" fill="none" stroke="#10B981" stroke-width="2"/>
+        <text x="90" y="115" fill="#10B981" font-size="9" font-family="monospace" font-weight="bold">HEAD</text>
+        <circle cx="155" cy="80" r="5" fill="none" stroke="#10B981" stroke-width="2"/>
+        <text x="148" y="95" fill="#10B981" font-size="8" font-family="monospace">RS</text>
+        <line x1="35" y1="57" x2="195" y2="57" stroke="rgba(16,185,129,0.7)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="195" y="54" fill="rgba(16,185,129,0.8)" font-size="8" font-family="monospace">NECKLINE</text>
+        <polyline points="200,38 218,25 235,15 250,8" fill="none" stroke="#10B981" stroke-width="2.5"/>
+        <text x="200" y="8" fill="#10B981" font-size="8" font-family="monospace">BUY → target = head depth</text>
+      `);
+    })();
+
+    // Cup & Handle
+    const cupHandle = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <path d="M 20,30 Q 95,125 170,30" fill="none" stroke="#F59E0B" stroke-width="2"/>
+        <text x="82" y="138" fill="#9B9891" font-size="8" font-family="monospace">CUP (rounding bottom)</text>
+        <polyline points="170,30 180,42 190,38 200,46 210,40 220,48 230,42" fill="none" stroke="#F59E0B" stroke-width="1.8"/>
+        <text x="172" y="60" fill="#9B9891" font-size="8" font-family="monospace">HANDLE</text>
+        <text x="172" y="70" fill="#9B9891" font-size="8" font-family="monospace">(small pullback)</text>
+        <line x1="15" y1="30" x2="240" y2="30" stroke="rgba(16,185,129,0.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="17" y="25" fill="rgba(16,185,129,0.7)" font-size="8" font-family="monospace">RESISTANCE (cup rim)</text>
+        <polyline points="230,42 250,25 265,12 278,4" fill="none" stroke="#10B981" stroke-width="3"/>
+        <text x="230" y="8" fill="#10B981" font-size="8" font-family="monospace">BUY breakout ✓</text>
+        <text x="15" y="143" fill="#9B9891" font-size="8" font-family="monospace">Target = depth of cup projected from breakout</text>
+      `);
+    })();
+
+    cpLesson5.content += wrapChart('CHART: Inverse Head & Shoulders — Powerful Bullish Reversal', inverseHS, 'Mirror image of H&S but at market bottoms. Three valleys: left shoulder, head (deepest), right shoulder. The neckline connects the peaks between the valleys. Enter LONG on close above the neckline. Target = depth from neckline to head projected upward. Win rate: 67-72%.');
+    cpLesson5.content += wrapChart('CHART: Cup & Handle — Classic Bullish Continuation', cupHandle, 'A long rounding bottom (the cup) followed by a smaller pullback (the handle), then a breakout above the cup rim. Formed over weeks to months on D1/W1 charts. Entry: close above the rim on the handle breakout. Target = depth of the cup added to breakout level. Win rate: 65-70% in uptrends.');
+  }
+
+  // ── BREAKOUT VISUALS for S&R lesson ──
+  const srLesson2 = CURRICULUM.flatMap(c=>c.lessons).find(l=>l.id==='support-resistance');
+  if (srLesson2 && !srLesson2._breakout_injected) {
+    srLesson2._breakout_injected = true;
+
+    const breakoutChart = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <line x1="15" y1="70" x2="${W-10}" y2="70" stroke="rgba(239,68,68,0.6)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="17" y="65" fill="rgba(239,68,68,0.7)" font-size="8" font-family="monospace">RESISTANCE — rejected 3× → becoming weaker</text>
+        <polyline points="15,120 35,105 50,100 65,70 75,80 90,90 105,70 115,78 130,70 140,60 160,45 175,50 195,38 210,28" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="65" cy="70" r="4" fill="none" stroke="#EF4444" stroke-width="1.5"/>
+        <circle cx="105" cy="70" r="4" fill="none" stroke="#EF4444" stroke-width="1.5"/>
+        <circle cx="130" cy="70" r="4" fill="none" stroke="#EF4444" stroke-width="1.5"/>
+        <text x="55" y="64" fill="#EF4444" font-size="7" font-family="monospace">1st</text>
+        <text x="97" y="64" fill="#EF4444" font-size="7" font-family="monospace">2nd</text>
+        <text x="122" y="64" fill="#EF4444" font-size="7" font-family="monospace">3rd</text>
+        <rect x="135" y="40" width="20" height="30" fill="#10B981" rx="1"/>
+        <text x="155" y="60" fill="#10B981" font-size="8" font-family="monospace">← BREAK candle</text>
+        <polyline points="180,50 180,70" fill="none" stroke="rgba(16,185,129,0.6)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="158" y="85" fill="#10B981" font-size="8" font-family="monospace">Retest → now SUPPORT</text>
+        <text x="15" y="140" fill="#9B9891" font-size="8" font-family="monospace">Wait for CLOSE above resistance, then buy the retest</text>
+      `);
+    })();
+
+    const fakeBreakout = (()=>{
+      const W=310,H=145;
+      return mkSVG(W,H,`
+        <rect width="${W}" height="${H}" fill="#13131A" rx="6"/>
+        <line x1="15" y1="60" x2="${W-10}" y2="60" stroke="rgba(245,158,11,0.7)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="17" y="55" fill="rgba(245,158,11,0.8)" font-size="8" font-family="monospace">KEY LEVEL — resistance above</text>
+        <polyline points="15,110 40,95 60,80 80,65 95,55 105,45 115,38" fill="none" stroke="#F59E0B" stroke-width="1.5"/>
+        <polyline points="115,38 120,32 118,38 115,50 118,60 122,70 130,80" fill="none" stroke="#EF4444" stroke-width="2"/>
+        <text x="100" y="28" fill="#EF4444" font-size="8" font-family="monospace">FAKE breakout</text>
+        <text x="102" y="38" fill="#EF4444" font-size="7" font-family="monospace">(wick only)</text>
+        <polyline points="130,80 145,92 160,105 175,115 190,120" fill="none" stroke="#EF4444" stroke-width="2"/>
+        <text x="130" y="137" fill="#EF4444" font-size="8" font-family="monospace">Price rejected → reversal = SELL entry</text>
+        <text x="15" y="140" fill="#9B9891" font-size="8" font-family="monospace">A wick through does NOT confirm breakout. Need a CLOSE.</text>
+      `);
+    })();
+
+    srLesson2.content += wrapChart('CHART: Real Breakout — Three Tests Then Breakout', breakoutChart, 'Resistance tested 3 times before breaking. Each test weakens sellers. The breakout candle must CLOSE above the level. After the close-above, price often retests the broken level (which is now support) before continuing higher. This retest = ideal entry point.');
+    srLesson2.content += wrapChart('CHART: Fake Breakout — The Stop Hunt Trap', fakeBreakout, 'Price briefly spikes above resistance (a wick) but fails to CLOSE above it. This is institutions hunting retail buy-stop orders above the level. The reversal back below is often a very high-probability SELL signal. Always wait for a full candle CLOSE to confirm any breakout.');
+  }
+
+  // ── FIBONACCI LESSON CHARTS ──
+  const fibLesson = CURRICULUM.flatMap(c=>c.lessons).find(l=>l.id==='indicators');
+  if (fibLesson && !fibLesson._fib_injected) {
+    fibLesson._fib_injected = true;
+
+    const fibChart = (()=>{
+      const W=310,H=165;
+      const levels = [
+        {pct:0,   y:20,  label:'0% — Swing High',   col:'rgba(239,68,68,0.6)'},
+        {pct:23.6,y:50,  label:'23.6% — Shallow',   col:'rgba(245,158,11,0.4)'},
+        {pct:38.2,y:75,  label:'38.2% — Normal',    col:'rgba(245,158,11,0.5)'},
+        {pct:50,  y:95,  label:'50.0% — Mid',        col:'rgba(245,158,11,0.6)'},
+        {pct:61.8,y:112, label:'61.8% ⭐ GOLDEN',   col:'rgba(16,185,129,0.8)'},
+        {pct:78.6,y:132, label:'78.6% — Deep',       col:'rgba(239,68,68,0.4)'},
+        {pct:100, y:152, label:'100% — Swing Low',   col:'rgba(239,68,68,0.6)'},
+      ];
+      let inner = `<rect width="${W}" height="${W}" fill="#13131A" rx="6"/>`;
+      levels.forEach(l => {
+        inner += `<line x1="70" y1="${l.y}" x2="${W-10}" y2="${l.y}" stroke="${l.col}" stroke-width="${l.pct===61.8?2:1}" stroke-dasharray="${l.pct===61.8?'none':'4,3'}"/>`;
+        inner += `<text x="5" y="${l.y+4}" fill="${l.pct===61.8?'#10B981':'#9B9891'}" font-size="${l.pct===61.8?9:8}" font-family="monospace" font-weight="${l.pct===61.8?'bold':'normal'}">${l.label}</text>`;
+      });
+      // Price line bouncing at 61.8
+      inner += `<polyline points="70,20 110,55 130,75 155,112 175,98 195,85 215,65 235,45 255,25" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>`;
+      inner += `<circle cx="155" cy="112" r="5" fill="none" stroke="#10B981" stroke-width="2"/>`;
+      inner += `<text x="160" y="110" fill="#10B981" font-size="8" font-family="monospace">Bounce at 61.8% = BUY</text>`;
+      return mkSVG(W, 165, inner);
+    })();
+
+    fibLesson.content += wrapChart('CHART: Fibonacci Retracement — The Golden Pocket Setup', fibChart, 'Draw from swing high to swing low (or vice versa). Price often retraces to key Fibonacci levels before continuing the trend. The 61.8% level (the Golden Pocket, highlighted in green) is the most powerful and widely respected level globally. When it coincides with a horizontal S&R level = extremely high probability entry zone.');
+  }
+
+  console.log('✅ All chart pattern SVGs injected: Double Top/Bottom, Wedges, Triangles, Downtrend, Consolidation, Inverse H&S, Cup & Handle, Breakout/Fake, Fibonacci');
+
   console.log('✅ SVG chart visuals injected into all core lessons');
 })();
 
