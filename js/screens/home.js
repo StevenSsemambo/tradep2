@@ -1,3 +1,4 @@
+let _qaTouchX = 0, _qaTouchY = 0;
 /* ═══════════════════════════════════════════════════════════════
    HOME SCREEN — Premium trading dashboard
    Upgrades: celebration overlay, swipeable cards, dense cleanup
@@ -187,9 +188,11 @@ function renderHome() {
           {icon:'📉',label:'Risk Ruin', sub:'Calculator',                         action:'riskofRuin'},
           {icon:'🌐',label:'Correlation',sub:'Pair matrix',                       action:'correlation'},
         ].map(a => `
-          <div class="qa-card" ontouchstart="this.style.transform='scale(.92)';this.style.borderColor='var(--accent)';this.style.background='var(--accent-bg)'"
-               ontouchend="this.style.transform='';this.style.borderColor='';this.style.background='';navigate('${a.action}')"
-               onclick="navigate('${a.action}')">
+          <div class="qa-card"
+               ontouchstart="_qaTx=event.touches[0].clientX;_qaTy=event.touches[0].clientY;_qaMoved=false;this.style.transform='scale(.94)';this.style.borderColor='var(--accent)'"
+               ontouchmove="_qaMoved=true;this.style.transform='';this.style.borderColor=''"
+               ontouchend="this.style.transform='';this.style.borderColor='';if(!_qaMoved&&Math.abs(event.changedTouches[0].clientX-_qaTx)<12&&Math.abs(event.changedTouches[0].clientY-_qaTy)<12){event.preventDefault();navigate('${a.action}')}"
+               onclick="if(!('ontouchstart' in window))navigate('${a.action}')">
             <div style="font-size:22px">${a.icon}</div>
             <div style="font-size:10px;font-weight:700;font-family:var(--display);line-height:1.2">${a.label}</div>
             <div style="font-size:9px;color:var(--txt3);margin-top:1px">${a.sub}</div>
@@ -251,7 +254,7 @@ function renderSwipeCards(insight) {
       <span class="pill pill-accent" onclick="navigate('${insight.action}')" style="cursor:pointer;flex-shrink:0">${insight.cta} →</span>
     </div>`,
     /* Card 1: Session status */
-    `<div style="padding:14px">
+    `<div style="padding:14px;overflow-y:auto;max-height:140px;-webkit-overflow-scrolling:touch">
       <div style="font-size:10px;color:var(--accent);font-family:var(--display);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">⏰ Today's Session</div>
       ${renderSessionSummary()}
     </div>`,
@@ -259,9 +262,9 @@ function renderSwipeCards(insight) {
 
   return `
     <div class="a-fadeup2" style="margin-bottom:14px;position:relative">
-      <div id="swipe-card-wrap" style="overflow:hidden;border-radius:var(--r);border:1px solid var(--bdr);background:linear-gradient(135deg,var(--bg2),var(--accent-bg))" ontouchstart="swipeCardStart(event)" ontouchend="swipeCardEnd(event)">
+      <div id="swipe-card-wrap" style="overflow:hidden;border-radius:var(--r);border:1px solid var(--bdr);background:rgba(255,255,255,0.45);backdrop-filter:blur(10px)" ontouchstart="swipeCardStart(event)" ontouchend="swipeCardEnd(event)">
         <div id="swipe-card-inner" style="display:flex;transition:transform .3s cubic-bezier(.22,.68,0,1.2)">
-          ${cards.map((c, i) => `<div style="min-width:100%;flex-shrink:0">${c}</div>`).join('')}
+          ${cards.map((c, i) => `<div style="min-width:100%;flex-shrink:0;overflow-y:auto;max-height:160px;-webkit-overflow-scrolling:touch">${c}</div>`).join('')}
         </div>
       </div>
       <!-- Dots -->
