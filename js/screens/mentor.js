@@ -46,11 +46,12 @@ function renderMentor() {
     <!-- Quick chips -->
     <div style="flex-shrink:0;display:flex;gap:6px;overflow-x:auto;padding:8px 14px;border-bottom:1px solid var(--bdr2);scrollbar-width:none;-webkit-overflow-scrolling:touch">
       ${[
+        'Analyse my patterns', 'Quiz me', 'My study plan',
         'My weakness?', 'Best pair for me', 'Should I trade today?',
-        'My win rate', 'What is my DNA?', 'Motivate me',
-        'Position sizing', 'Best time to trade', 'Review my last trade',
-        'What is RSI?', 'SMC explained', 'London Breakout',
-        'My progress', 'Psychology tips', 'Risk management'
+        'My win rate', 'Best setup for me', 'Review my last trade',
+        'What is RSI?', 'SMC explained', 'Teach me Fibonacci simply',
+        'My progress', 'I am frustrated', 'Risk management',
+        'Best day to trade', 'Worst pair to avoid'
       ].map(q => `<div
         style="flex-shrink:0;background:var(--bg3);border:1px solid var(--bdr2);border-radius:20px;padding:6px 13px;font-size:11px;color:var(--txt2);cursor:pointer;white-space:nowrap;font-family:var(--display);font-weight:600;transition:all .2s;-webkit-tap-highlight-color:transparent"
         onclick="sendQuickQuestion('${q.replace(/'/g, "\\'")}');this.style.color='var(--accent)';this.style.borderColor='var(--accent)'"
@@ -61,6 +62,7 @@ function renderMentor() {
     <div id="chat-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
       ${history.length === 0 ? `
         <div class="chat-msg bot">
+          ${typeof getProactiveAlert === 'function' && getProactiveAlert() ? `<div style="margin-bottom:10px;padding:8px;background:rgba(239,68,68,0.1);border-radius:8px;font-size:13px">${getProactiveAlert()}</div>` : ''}
           Hey ${name}! 👋 I am <strong style="color:var(--accent)">TradeMind AI</strong> — your intelligent trading coach.<br><br>
           ${welcomeDetail}
           I know your trading history, DNA profile, and every lesson in the academy. Ask me anything about your performance, forex concepts, or strategies — or tap a chip above. 🎯
@@ -150,16 +152,14 @@ function submitChat() {
     const typEl = document.getElementById(typId);
     if (typEl) typEl.remove();
 
-    // ── SMART AI ROUTING ──
-    // 1. Try generateFloatResponse first (most personalised — uses DNA, journal, BEHAVIOR)
-    // 2. Falls through to generateEnhancedResponse (uses live STATE data)
-    // 3. Falls through to generateResponse (topic knowledge + glossary)
+    // ── SMART AI ROUTING — uses ai_brain.js generateSmartResponse ──
+    // Priority: Pattern Detection → Quiz → Level-aware teaching → Float → Enhanced → Base
     let response = '';
     try {
-      if (typeof generateFloatResponse === 'function') {
+      if (typeof generateSmartResponse === 'function') {
+        response = generateSmartResponse(text);
+      } else if (typeof generateFloatResponse === 'function') {
         response = generateFloatResponse(text);
-      } else if (typeof generateEnhancedResponse === 'function') {
-        response = generateEnhancedResponse(text);
       } else if (typeof generateResponse === 'function') {
         response = generateResponse(text);
       }
@@ -173,7 +173,7 @@ function submitChat() {
     if (!response || response === 'undefined') {
       response = typeof generateResponse === 'function'
         ? generateResponse(text)
-        : 'Ask me anything about forex, your trades, or your progress — I am here to help!';
+        : 'Ask me anything about your trading, patterns, or anything forex!';
     }
 
     STATE.chatHistory.push({ role: 'bot', text: response });
