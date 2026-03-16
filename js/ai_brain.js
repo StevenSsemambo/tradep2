@@ -11,7 +11,71 @@
    5. PROACTIVE COACH — watches for bad habits and intervenes
    6. QUIZ ENGINE     — can test user comprehension inline
    7. TRADE ANALYZER  — deep analysis of a specific trade setup
+   8. PREDICTIVE ENGINE — forecasts trade outcomes
+   9. PATTERN EVOLUTION — learns which interventions work
+   10. MARKET REGIME DETECTION — adapts to market conditions
+   11. PERSONALITY ADAPTATION — tailors coaching style to user
+   12. CONTINUOUS LEARNING — self-optimizes over time
    ═══════════════════════════════════════════════════════════════ */
+
+/* ============== AI ENHANCEMENTS INIT ============== */
+if (!STATE.predictionModel) {
+    STATE.predictionModel = {
+        tradeOutcomePredictor: null,
+        tiltPredictor: null,
+        optimalSessionPredictor: null,
+        accuracy: { trades: 0, tilt: 0 },
+        trainingData: [],
+        lastPrediction: null
+    };
+}
+
+if (!STATE.patternEvolution) {
+    STATE.patternEvolution = {
+        interventions: [],
+        effectivePatterns: {},
+        ignoredPatterns: {},
+        adaptationRate: 0.7
+    };
+}
+
+if (!STATE.marketRegime) {
+    STATE.marketRegime = {
+        current: 'unknown',
+        confidence: 0,
+        lastUpdate: null,
+        regimeHistory: []
+    };
+}
+
+if (!STATE.personalityProfile) {
+    STATE.personalityProfile = {
+        style: 'balanced',
+        adaptationHistory: [],
+        detectedPreferences: {
+            likesData: null,
+            likesEncouragement: null,
+            likesDirectness: null,
+            likesExamples: null
+        },
+        responseToStyles: {}
+    };
+}
+
+if (!STATE.learningLoop) {
+    STATE.learningLoop = {
+        lastOptimization: null,
+        improvementMetrics: {
+            responseHelpfulness: [],
+            patternAccuracy: [],
+            userRetention: [],
+            quizPerformance: []
+        },
+        learningRate: 0.1,
+        version: 1
+    };
+}
+/* ============== END OF INIT ============== */
 
 /* ════════════════════════════════════════════════════════════════
    1. FULL CONTEXT ENGINE
@@ -95,7 +159,8 @@ function buildFullContext() {
   const planCompliance = planEntries.length
     ? Math.round(planEntries.filter(t => t.plan === 'yes').length / planEntries.length * 100) : null;
 
-  return {
+  /* ============== ENHANCED CONTEXT FIELDS ============== */
+  const ctx = {
     name: STATE.user?.name || 'Trader',
     level: lvl, userTier, xp: STATE.user?.xp || 0,
     streak: STATE.dailyStreak || 0,
@@ -111,7 +176,58 @@ function buildFullContext() {
     achievements: STATE.achievements || [],
     patternScore: STATE.patternScore || { correct:0, total:0 },
   };
+  
+  const prediction = predictNextTrade ? predictNextTrade(ctx) : null;
+  const marketRegime = detectMarketRegime ? detectMarketRegime(ctx) : 'unknown';
+  const learningVelocity = calculateLearningVelocity ? calculateLearningVelocity(ctx) : null;
+  const riskScore = calculateRiskScore ? calculateRiskScore(ctx) : 0;
+  const nextMilestone = calculateNextMilestone ? calculateNextMilestone(ctx) : null;
+  const preferredStyle = detectPreferredStyle ? detectPreferredStyle() : 'balanced';
+  
+  return {
+    ...ctx,
+    prediction: prediction,
+    modelAccuracy: STATE.predictionModel?.accuracy?.trades || 0,
+    marketRegime: marketRegime,
+    marketAdvice: getMarketRegimeAdvice ? getMarketRegimeAdvice(marketRegime) : null,
+    preferredStyle: preferredStyle,
+    learningVelocity: learningVelocity,
+    riskScore: riskScore,
+    nextMilestone: nextMilestone
+  };
 }
+
+/* ============== HELPER FUNCTIONS ============== */
+function average(arr) {
+    return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+}
+
+function encodeMoodForML(mood) {
+    const moodMap = {
+        'calm': 1, 'confident': 2, 'focused': 3,
+        'neutral': 0, 'anxious': -1, 'frustrated': -2,
+        'revenge': -3, 'greedy': -2, 'angry': -3
+    };
+    return moodMap[mood?.toLowerCase()] || 0;
+}
+
+function calculateRollingWR(trades, currentIdx, window) {
+    const start = Math.max(0, currentIdx - window);
+    const slice = trades.slice(start, currentIdx);
+    if (slice.length === 0) return 50;
+    const wins = slice.filter(t => parseFloat(t.pnl) > 0).length;
+    return Math.round(wins / slice.length * 100);
+}
+
+function calculateConsecutiveLosses(trades, currentIdx) {
+    let streak = 0;
+    for (let i = currentIdx - 1; i >= 0; i--) {
+        if (parseFloat(trades[i].pnl) <= 0) streak++;
+        else break;
+    }
+    return streak;
+}
+/* ============== END OF HELPER FUNCTIONS ============== */
 
 /* ════════════════════════════════════════════════════════════════
    2. PATTERN DETECTOR
@@ -260,6 +376,11 @@ function detectJournalPatterns(journal) {
 function smartAIResponse(input) {
   const q   = input.toLowerCase().trim();
   const ctx = buildFullContext();
+
+  /* ── Personality detection ── */
+  if (STATE.chatHistory?.length % 10 === 0) {
+    detectPreferredStyle();
+  }
 
   /* ── Tier 1: Proactive pattern insights ── */
   if (q.match(/my pattern|what pattern|what do you see|analyse me|analyze me|give me insight|diagnose me|what am i doing wrong|tell me everything|full analysis/)) {
@@ -585,6 +706,595 @@ function generateEmotionalCoaching(ctx) {
   return response;
 }
 
+/* ============== SECTION 11: PREDICTIVE INTELLIGENCE ENGINE ============== */
+/* ════════════════════════════════════════════════════════════════
+   11. PREDICTIVE INTELLIGENCE ENGINE
+   ════════════════════════════════════════════════════════════════ */
+
+function trainPredictionModel() {
+    const trades = STATE.journal || [];
+    if (trades.length < 15) return;
+    
+    const features = trades.map((t, i) => {
+        const prevTrades = trades.slice(Math.max(0, i-3), i);
+        const prevWins = prevTrades.filter(p => parseFloat(p.pnl) > 0).length;
+        
+        return {
+            hour: new Date(t.date || t.time).getHours(),
+            dayOfWeek: new Date(t.date || t.time).getDay(),
+            pair: t.pair || 'unknown',
+            setup: t.setup || 'unknown',
+            mood: encodeMoodForML(t.mood),
+            planFollowed: t.plan === 'yes' ? 1 : 0,
+            rr: parseFloat(t.rr) || 0,
+            winRateLast5: calculateRollingWR(trades, i, 5),
+            consecutiveLosses: calculateConsecutiveLosses(trades, i),
+            prevTradePnl: i > 0 ? parseFloat(trades[i-1].pnl) : 0,
+            prev3Wins: prevWins,
+            outcome: parseFloat(t.pnl) > 0 ? 1 : 0
+        };
+    }).filter(f => f.outcome !== undefined);
+    
+    const model = buildNaiveBayesModel(features);
+    STATE.predictionModel.tradeOutcomePredictor = model;
+    
+    const validationSize = Math.floor(features.length * 0.2);
+    const validationSet = features.slice(-validationSize);
+    const correct = validationSet.filter(f => {
+        const pred = predictTradeOutcome(f, model);
+        return pred === f.outcome;
+    }).length;
+    
+    STATE.predictionModel.accuracy.trades = validationSize > 0 
+        ? Math.round(correct / validationSize * 100) 
+        : 0;
+}
+
+function buildNaiveBayesModel(features) {
+    const wins = features.filter(f => f.outcome === 1);
+    const losses = features.filter(f => f.outcome === 0);
+    
+    return {
+        priorWin: wins.length / features.length,
+        priorLoss: losses.length / features.length,
+        avgWinFeatures: {
+            hour: average(wins.map(f => f.hour)),
+            dayOfWeek: average(wins.map(f => f.dayOfWeek)),
+            mood: average(wins.map(f => f.mood)),
+            planFollowed: average(wins.map(f => f.planFollowed)),
+            rr: average(wins.map(f => f.rr)),
+            winRateLast5: average(wins.map(f => f.winRateLast5)),
+            prev3Wins: average(wins.map(f => f.prev3Wins))
+        },
+        avgLossFeatures: {
+            hour: average(losses.map(f => f.hour)),
+            dayOfWeek: average(losses.map(f => f.dayOfWeek)),
+            mood: average(losses.map(f => f.mood)),
+            planFollowed: average(losses.map(f => f.planFollowed)),
+            rr: average(losses.map(f => f.rr)),
+            winRateLast5: average(losses.map(f => f.winRateLast5)),
+            prev3Wins: average(losses.map(f => f.prev3Wins))
+        }
+    };
+}
+
+function predictTradeOutcome(features, model) {
+    if (!model) return null;
+    
+    let winScore = model.priorWin;
+    let lossScore = model.priorLoss;
+    
+    Object.keys(model.avgWinFeatures).forEach(key => {
+        const winAvg = model.avgWinFeatures[key];
+        const lossAvg = model.avgLossFeatures[key];
+        const value = features[key];
+        
+        if (Math.abs(value - winAvg) < Math.abs(value - lossAvg)) {
+            winScore *= 1.2;
+        } else {
+            lossScore *= 1.2;
+        }
+    });
+    
+    return winScore > lossScore ? 1 : 0;
+}
+
+function predictNextTrade(ctx) {
+    if (!STATE.predictionModel?.tradeOutcomePredictor || ctx.allTrades.length < 15) {
+        return null;
+    }
+    
+    const lastTrades = ctx.allTrades.slice(-5);
+    const prevWins = lastTrades.filter(t => parseFloat(t.pnl) > 0).length;
+    
+    const features = {
+        hour: new Date().getHours(),
+        dayOfWeek: new Date().getDay(),
+        pair: ctx.bestPair || 'unknown',
+        setup: ctx.bestSetup || 'unknown',
+        mood: ctx.recentMoods[ctx.recentMoods.length - 1] || 'neutral',
+        planFollowed: ctx.planCompliance > 70 ? 1 : 0.5,
+        rr: ctx.avgWin / ctx.avgLoss || 1.5,
+        winRateLast5: prevWins * 20,
+        consecutiveLosses: calculateConsecutiveLosses(ctx.allTrades, ctx.allTrades.length - 1),
+        prevTradePnl: ctx.allTrades.length ? parseFloat(ctx.allTrades[ctx.allTrades.length - 1].pnl) : 0,
+        prev3Wins: prevWins
+    };
+    
+    const prediction = predictTradeOutcome(features, STATE.predictionModel.tradeOutcomePredictor);
+    const confidence = STATE.predictionModel.accuracy.trades || 70;
+    
+    return {
+        willWin: prediction === 1,
+        confidence: confidence,
+        features: features
+    };
+}
+
+/* ============== SECTION 12: PATTERN EVOLUTION ENGINE ============== */
+/* ════════════════════════════════════════════════════════════════
+   12. PATTERN EVOLUTION ENGINE
+   ════════════════════════════════════════════════════════════════ */
+
+function trackInterventionFollowThrough(patternType, adviceGiven) {
+    const intervention = {
+        pattern: patternType,
+        advice: adviceGiven.substring(0, 100),
+        date: new Date().toISOString(),
+        followed: null,
+        outcome: null
+    };
+    
+    STATE.patternEvolution.interventions.push(intervention);
+    
+    setTimeout(() => {
+        checkInterventionEffectiveness(intervention);
+    }, 3 * 86400000);
+}
+
+function checkInterventionEffectiveness(intervention) {
+    const ctx = buildFullContext();
+    const trades = ctx.allTrades || [];
+    
+    const postTrades = trades.filter(t => 
+        new Date(t.date || t.time) > new Date(intervention.date)
+    );
+    
+    if (postTrades.length < 3) return;
+    
+    const patternImproved = evaluatePatternImprovement(intervention.pattern, postTrades);
+    
+    intervention.followed = true;
+    intervention.outcome = patternImproved ? 'positive' : 'neutral';
+    
+    if (patternImproved) {
+        STATE.patternEvolution.effectivePatterns[intervention.pattern] = 
+            (STATE.patternEvolution.effectivePatterns[intervention.pattern] || 0) + 1;
+    } else {
+        STATE.patternEvolution.ignoredPatterns[intervention.pattern] = 
+            (STATE.patternEvolution.ignoredPatterns[intervention.pattern] || 0) + 1;
+    }
+}
+
+function evaluatePatternImprovement(patternType, trades) {
+    const winRate = trades.filter(t => parseFloat(t.pnl) > 0).length / trades.length * 100;
+    return winRate > 50;
+}
+
+function evolvePatternAdvice(pattern, originalAdvice, ctx) {
+    const evolution = STATE.patternEvolution;
+    const patternType = pattern.type;
+    
+    if (evolution.effectivePatterns[patternType] < (evolution.ignoredPatterns[patternType] || 0)) {
+        return `${originalAdvice} <br><br><em>Note: You've ignored this advice before. I'm being more direct: This is costing you money. Set a calendar reminder to review this in 1 week.</em>`;
+    }
+    
+    if (evolution.effectivePatterns[patternType] > 2) {
+        return `${originalAdvice} <br><br><em>🔥 This advice has proven profitable for you ${evolution.effectivePatterns[patternType]} times. Trust the pattern.</em>`;
+    }
+    
+    return originalAdvice;
+}
+
+/* ============== SECTION 13: MARKET REGIME DETECTION ============== */
+/* ════════════════════════════════════════════════════════════════
+   13. MARKET REGIME DETECTION
+   ════════════════════════════════════════════════════════════════ */
+
+function detectMarketRegime(ctx) {
+    const trades = ctx.allTrades || [];
+    if (trades.length < 10) return 'unknown';
+    
+    const recent = trades.slice(-20);
+    const pnls = recent.map(t => Math.abs(parseFloat(t.pnl) || 0));
+    const avgMove = average(pnls);
+    const volatility = avgMove / (ctx.avgWin || 1);
+    
+    const winRate = ctx.wr / 100;
+    const winRateVolatility = calculateWinRateVolatility(recent);
+    
+    if (volatility > 2.0 && winRateVolatility > 0.3) {
+        return 'volatile';
+    } else if (winRate > 0.6 && winRateVolatility < 0.2) {
+        return 'trending';
+    } else if (winRate < 0.4 && winRateVolatility < 0.2) {
+        return 'ranging';
+    } else if (volatility < 0.8) {
+        return 'quiet';
+    }
+    
+    return 'mixed';
+}
+
+function calculateWinRateVolatility(trades) {
+    if (trades.length < 5) return 1;
+    
+    const windows = [];
+    for (let i = 0; i <= trades.length - 5; i++) {
+        const window = trades.slice(i, i + 5);
+        const wins = window.filter(t => parseFloat(t.pnl) > 0).length;
+        windows.push(wins / 5);
+    }
+    
+    const avg = average(windows);
+    const variance = average(windows.map(w => Math.pow(w - avg, 2)));
+    return Math.sqrt(variance);
+}
+
+const MARKET_ADVICE = {
+    volatile: {
+        title: "🌪️ Volatile Market Detected",
+        advice: "Your recent trades show high volatility. In these conditions:",
+        bullets: [
+            "Reduce position size by 50%",
+            "Widen stops (volatility will hit tight stops)",
+            "Focus on 1-2 pairs only",
+            "Avoid holding through news events"
+        ]
+    },
+    trending: {
+        title: "📈 Trending Market Detected",
+        advice: "Your win rate suggests a trending market:",
+        bullets: [
+            "This is your edge — trade with trend",
+            "Consider adding to winning positions",
+            "Trailing stops work well here",
+            "Avoid counter-trend setups entirely"
+        ]
+    },
+    ranging: {
+        title: "📊 Ranging Market Detected",
+        advice: "The market appears to be ranging:",
+        bullets: [
+            "Focus on support/resistance bounces",
+            "Take profits faster (trend fades quickly)",
+            "Use oscillators like RSI for entries",
+            "Consider mean reversion strategies"
+        ]
+    },
+    quiet: {
+        title: "😴 Quiet Market Detected",
+        advice: "Low volatility environment:",
+        bullets: [
+            "Wait for breakout before committing",
+            "Reduce frequency (fewer quality setups)",
+            "Check higher timeframe for direction",
+            "Be patient — best trades come later"
+        ]
+    }
+};
+
+function getMarketRegimeAdvice(regime) {
+    return MARKET_ADVICE[regime] || null;
+}
+
+/* ============== SECTION 14: PERSONALITY ADAPTATION ENGINE ============== */
+/* ════════════════════════════════════════════════════════════════
+   14. PERSONALITY ADAPTATION ENGINE
+   ════════════════════════════════════════════════════════════════ */
+
+const PERSONALITY_STYLES = {
+    gentle: {
+        tone: "warm and supportive",
+        prefixes: ["I understand", "It's okay to", "Everyone struggles with"],
+        emphasis: "encouragement and patience",
+        emoji: "💙"
+    },
+    balanced: {
+        tone: "professional and clear",
+        prefixes: ["Here's what I see", "The data shows", "Consider this"],
+        emphasis: "balanced perspective",
+        emoji: "⚖️"
+    },
+    direct: {
+        tone: "straightforward and firm",
+        prefixes: ["Stop", "This is costing you", "Here's the truth"],
+        emphasis: "direct action",
+        emoji: "🎯"
+    },
+    analytical: {
+        tone: "data-driven and precise",
+        prefixes: ["Statistically", "The numbers indicate", "Probability suggests"],
+        emphasis: "hard numbers",
+        emoji: "📊"
+    },
+    motivational: {
+        tone: "energetic and inspiring",
+        prefixes: ["You've got this", "Champions handle this by", "Level up by"],
+        emphasis: "growth mindset",
+        emoji: "🔥"
+    }
+};
+
+function detectPreferredStyle(interactions = STATE.chatHistory || []) {
+    if (interactions.length < 10) return 'balanced';
+    
+    const userResponses = interactions.filter(m => m.role === 'user').slice(-20);
+    const botResponses = interactions.filter(m => m.role === 'bot').slice(-20);
+    
+    const styleEngagement = {};
+    
+    botResponses.forEach((bot, i) => {
+        if (!bot.style) return;
+        
+        const nextUser = userResponses.find(u => u.timestamp > bot.timestamp);
+        if (!nextUser) return;
+        
+        const engaged = nextUser.text.length > 30 || 
+                       nextUser.text.includes('?') || 
+                       nextUser.text.toLowerCase().includes('thanks');
+        
+        styleEngagement[bot.style] = styleEngagement[bot.style] || { shown: 0, engaged: 0 };
+        styleEngagement[bot.style].shown++;
+        if (engaged) styleEngagement[bot.style].engaged++;
+    });
+    
+    let bestStyle = 'balanced';
+    let bestRate = 0;
+    
+    Object.entries(styleEngagement).forEach(([style, data]) => {
+        if (data.shown >= 3) {
+            const rate = data.engaged / data.shown;
+            if (rate > bestRate) {
+                bestRate = rate;
+                bestStyle = style;
+            }
+        }
+    });
+    
+    STATE.personalityProfile.detectedPreferences.style = bestStyle;
+    return bestStyle;
+}
+
+function adaptResponseToPersonality(response, ctx, baseStyle = null) {
+    const preferredStyle = baseStyle || STATE.personalityProfile.detectedPreferences.style || 'balanced';
+    const style = PERSONALITY_STYLES[preferredStyle];
+    
+    if (!style || response.length < 50) return response;
+    
+    const hasPrefix = style.prefixes.some(p => response.includes(p));
+    if (!hasPrefix && Math.random() > 0.5) {
+        const prefix = style.prefixes[Math.floor(Math.random() * style.prefixes.length)];
+        response = `${prefix} ${response.toLowerCase()}`;
+    }
+    
+    if (!response.includes(style.emoji) && Math.random() > 0.3) {
+        response = `${style.emoji} ${response}`;
+    }
+    
+    STATE.personalityProfile.adaptationHistory.push({
+        style: preferredStyle,
+        timestamp: new Date(),
+        responseLength: response.length
+    });
+    
+    return response;
+}
+
+/* ============== SECTION 15: CONTINUOUS LEARNING LOOP ============== */
+/* ════════════════════════════════════════════════════════════════
+   15. CONTINUOUS LEARNING LOOP
+   ════════════════════════════════════════════════════════════════ */
+
+function runLearningOptimization() {
+    const ctx = buildFullContext();
+    const chatHistory = STATE.chatHistory || [];
+    const interactions = chatHistory.length;
+    
+    if (interactions < 50) return;
+    
+    const lastRun = STATE.learningLoop.lastOptimization;
+    if (lastRun && (Date.now() - lastRun) < 7 * 86400000) return;
+    
+    console.log('🧠 Running AI self-optimization...');
+    
+    const responseAnalysis = analyzeResponseEffectiveness(chatHistory);
+    adjustPatternThresholds(responseAnalysis);
+    updatePersonalityWeights(responseAnalysis);
+    pruneIneffectivePatterns();
+    
+    STATE.learningLoop.lastOptimization = Date.now();
+    STATE.learningLoop.version++;
+    
+    console.log(`✅ AI optimized to version ${STATE.learningLoop.version}`);
+}
+
+function analyzeResponseEffectiveness(chatHistory) {
+    const analysis = {
+        patternResponses: { shown: 0, engaged: 0 },
+        quizResponses: { shown: 0, engaged: 0 },
+        teachingResponses: { shown: 0, engaged: 0 },
+        emotionalResponses: { shown: 0, engaged: 0 }
+    };
+    
+    for (let i = 0; i < chatHistory.length - 1; i++) {
+        const bot = chatHistory[i];
+        const user = chatHistory[i + 1];
+        
+        if (bot.role !== 'bot' || user.role !== 'user') continue;
+        
+        let category = 'other';
+        if (bot.text.includes('pattern-card') || bot.text.includes('Pattern Report')) {
+            category = 'patternResponses';
+        } else if (bot.text.includes('Quiz Time') || bot.text.includes('scoreQuizAnswer')) {
+            category = 'quizResponses';
+        } else if (bot.text.includes('teach') || bot.text.includes('explain')) {
+            category = 'teachingResponses';
+        } else if (bot.text.includes('EMERGENCY') || bot.text.includes('emotional')) {
+            category = 'emotionalResponses';
+        }
+        
+        if (category !== 'other') {
+            analysis[category].shown++;
+            if (user.text.length > 15) {
+                analysis[category].engaged++;
+            }
+        }
+    }
+    
+    return analysis;
+}
+
+function adjustPatternThresholds(analysis) {
+    if (analysis.patternResponses.shown > 10) {
+        const engageRate = analysis.patternResponses.engaged / analysis.patternResponses.shown;
+        
+        if (engageRate < 0.3) {
+            STATE.learningLoop.learningRate = Math.min(0.3, STATE.learningLoop.learningRate + 0.05);
+            console.log('⚙️ Increasing pattern detection threshold');
+        } else if (engageRate > 0.7) {
+            STATE.learningLoop.learningRate = Math.max(0.05, STATE.learningLoop.learningRate - 0.02);
+            console.log('⚙️ Decreasing pattern detection threshold');
+        }
+    }
+}
+
+function updatePersonalityWeights(analysis) {
+    let bestCategory = null;
+    let bestRate = 0;
+    
+    Object.entries(analysis).forEach(([cat, data]) => {
+        if (data.shown >= 5) {
+            const rate = data.engaged / data.shown;
+            if (rate > bestRate) {
+                bestRate = rate;
+                bestCategory = cat;
+            }
+        }
+    });
+    
+    const styleMap = {
+        patternResponses: 'analytical',
+        quizResponses: 'motivational',
+        teachingResponses: 'balanced',
+        emotionalResponses: 'gentle'
+    };
+    
+    if (bestCategory && styleMap[bestCategory]) {
+        STATE.personalityProfile.responseToStyles[styleMap[bestCategory]] = 
+            (STATE.personalityProfile.responseToStyles[styleMap[bestCategory]] || 0) + 1;
+    }
+}
+
+function pruneIneffectivePatterns() {
+    const patterns = STATE.patternEvolution?.interventions || [];
+    if (patterns.length < 20) return;
+    
+    const patternEffectiveness = {};
+    
+    patterns.forEach(p => {
+        if (!patternEffectiveness[p.pattern]) {
+            patternEffectiveness[p.pattern] = { total: 0, effective: 0 };
+        }
+        patternEffectiveness[p.pattern].total++;
+        if (p.outcome === 'positive') {
+            patternEffectiveness[p.pattern].effective++;
+        }
+    });
+    
+    Object.entries(patternEffectiveness).forEach(([pattern, data]) => {
+        if (data.total >= 5 && data.effective / data.total < 0.2) {
+            console.log(`📉 Pattern "${pattern}" only ${Math.round(data.effective/data.total*100)}% effective - consider revising`);
+        }
+    });
+}
+
+/* ============== SECTION 16: ENHANCED CONTEXT CALCULATIONS ============== */
+/* ════════════════════════════════════════════════════════════════
+   16. ENHANCED CONTEXT CALCULATIONS
+   ════════════════════════════════════════════════════════════════ */
+
+function calculateLearningVelocity(ctx) {
+    const trades = ctx.allTrades || [];
+    if (trades.length < 20) return null;
+    
+    const half = Math.floor(trades.length / 2);
+    const firstHalf = trades.slice(0, half);
+    const secondHalf = trades.slice(half);
+    
+    const firstWR = firstHalf.filter(t => parseFloat(t.pnl) > 0).length / firstHalf.length * 100;
+    const secondWR = secondHalf.filter(t => parseFloat(t.pnl) > 0).length / secondHalf.length * 100;
+    
+    return {
+        direction: secondWR > firstWR ? 'improving' : 'declining',
+        rate: Math.round(secondWR - firstWR),
+        firstWR: Math.round(firstWR),
+        secondWR: Math.round(secondWR)
+    };
+}
+
+function calculateRiskScore(ctx) {
+    let score = 0;
+    
+    if (ctx.emotionalRisk) score += 20;
+    score += (ctx.recentMoods.filter(m => ['revenge','angry'].includes(m)).length * 5);
+    
+    if (ctx.avgLoss > ctx.avgWin * 1.5) score += 15;
+    if (ctx.planCompliance < 50) score += 15;
+    
+    if (ctx.marketRegime === 'volatile') score += 15;
+    if (ctx.marketRegime === 'unknown') score += 10;
+    
+    if (ctx.allTrades.length > 10) {
+        const last3Days = ctx.allTrades.filter(t => 
+            new Date(t.date || t.time) > new Date(Date.now() - 3*86400000)
+        ).length;
+        if (last3Days > 10) score += 20;
+    }
+    
+    return Math.min(100, score);
+}
+
+function calculateNextMilestone(ctx) {
+    const milestones = [
+        { level: 2, requirement: 'Complete 5 lessons', progress: ctx.completedLessons.length },
+        { level: 3, requirement: 'Log 20 trades', progress: ctx.allTrades.length },
+        { level: 4, requirement: '70%+ plan compliance', progress: ctx.planCompliance || 0 },
+        { level: 5, requirement: '1.5+ profit factor', progress: ctx.pf * 100 }
+    ];
+    
+    const next = milestones.find(m => 
+        (m.level > ctx.level) && 
+        (typeof m.progress === 'number' ? m.progress < parseInt(m.requirement) : true)
+    );
+    
+    if (!next) return null;
+    
+    const reqValue = parseInt(next.requirement) || 100;
+    const progress = typeof next.progress === 'number' 
+        ? Math.min(100, Math.round(next.progress / reqValue * 100))
+        : 0;
+    
+    return {
+        level: next.level,
+        requirement: next.requirement,
+        progress: progress,
+        remaining: next.requirement.includes('%') 
+            ? `${parseInt(next.requirement) - next.progress}%`
+            : parseInt(next.requirement) - next.progress
+    };
+}
+
 /* ════════════════════════════════════════════════════════════════
    9. PATTERN ANSWER
    Specific data-backed answer about user's trading patterns
@@ -677,15 +1387,22 @@ function getProactiveAlert() {
    ════════════════════════════════════════════════════════════════ */
 function generateSmartResponse(input) {
   const q = input.toLowerCase().trim();
+  const ctx = buildFullContext();
 
   // Check if user is answering a quiz
   if (STATE._quizActive && STATE._quizKeywords) {
-    const score = scoreQuizAnswer(input, buildFullContext());
+    const score = scoreQuizAnswer(input, ctx);
     if (score) return score;
   }
 
   // Try smart router first
-  const smartResp = smartAIResponse(input);
+  let smartResp = smartAIResponse(input);
+  
+  // Adapt to personality
+  if (smartResp) {
+    smartResp = adaptResponseToPersonality(smartResp, ctx);
+  }
+  
   if (smartResp) return smartResp;
 
   // Fall back to existing 3-tier chain
@@ -710,3 +1427,23 @@ function generateSmartResponse(input) {
 }
 
 console.log('✅ AI Brain loaded: Pattern Detection, Quiz Engine, Level-Aware Teaching, Study Plans, Emotional Coaching');
+
+/* ============== Initialize AI ============== */
+function initializeAI() {
+    setTimeout(() => {
+        const ctx = buildFullContext();
+        if (ctx.allTrades.length >= 15 && typeof trainPredictionModel === 'function') {
+            trainPredictionModel();
+        }
+        if (typeof detectPreferredStyle === 'function') {
+            detectPreferredStyle();
+        }
+        if (typeof runLearningOptimization === 'function') {
+            runLearningOptimization();
+        }
+        console.log('🧠 AI fully initialized with all intelligence layers');
+    }, 1000);
+}
+
+// Call it
+initializeAI();
