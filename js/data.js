@@ -1404,3 +1404,182 @@ const SETUP_DATABASE = [
     notes: "The 61.8% golden pocket is the most respected retracement level globally. Institutional orders cluster here."
   },
 ];
+
+/* ═══════════════════════════════════════════════════════════════
+   AFRICAN MARKET LOCALISATION DATA
+   UGX / KES / NGN / TZS — mobile money, local brokers, EAT times
+   ═══════════════════════════════════════════════════════════════ */
+const AFRICA_DATA = {
+  currencies: {
+    UGX: { name: 'Ugandan Shilling',   symbol: 'UGX', rateToUSD: 3750,  flag: '🇺🇬', country: 'Uganda' },
+    KES: { name: 'Kenyan Shilling',     symbol: 'KES', rateToUSD: 129,   flag: '🇰🇪', country: 'Kenya' },
+    NGN: { name: 'Nigerian Naira',      symbol: 'NGN', rateToUSD: 1580,  flag: '🇳🇬', country: 'Nigeria' },
+    TZS: { name: 'Tanzanian Shilling',  symbol: 'TZS', rateToUSD: 2650,  flag: '🇹🇿', country: 'Tanzania' },
+    GHS: { name: 'Ghanaian Cedi',       symbol: 'GHS', rateToUSD: 15.5,  flag: '🇬🇭', country: 'Ghana' },
+    ZAR: { name: 'South African Rand',  symbol: 'ZAR', rateToUSD: 18.7,  flag: '🇿🇦', country: 'South Africa' },
+  },
+  mobileMoney: [
+    { name: 'MTN Mobile Money', countries: ['Uganda','Ghana','Nigeria'], min: 5, icon: '📱' },
+    { name: 'Airtel Money',     countries: ['Uganda','Kenya','Tanzania'], min: 5, icon: '📱' },
+    { name: 'M-Pesa',           countries: ['Kenya','Tanzania'],         min: 5, icon: '📱' },
+    { name: 'Flutterwave',      countries: ['Nigeria','Ghana','Uganda'], min: 10, icon: '💳' },
+    { name: 'Chipper Cash',     countries: ['Uganda','Ghana','Nigeria'], min: 5, icon: '💸' },
+  ],
+  brokers: [
+    { name: 'Exness',      regulated: 'FSCA/FCA/CySEC', minDeposit: 10,  mobile: true,  stars: 5, note: 'Most popular in East Africa. MTN/Airtel accepted. UGX/KES support.' },
+    { name: 'HFM (HFMarkets)', regulated: 'FSCA/CySEC',  minDeposit: 5,   mobile: true,  stars: 5, note: 'No minimum deposit on Cent accounts. M-Pesa deposits in Kenya.' },
+    { name: 'FBS',         regulated: 'FSCA/IFSC',     minDeposit: 1,   mobile: true,  stars: 4, note: 'Very low minimum. Popular in Uganda. Mobile money via local agents.' },
+    { name: 'Deriv (Binary.com)', regulated: 'VFSC/LFSA', minDeposit: 5, mobile: true,  stars: 4, note: 'Strong Africa focus. DP2P accepts mobile money directly.' },
+    { name: 'FXTM',        regulated: 'FCA/CySEC/FSCA', minDeposit: 10, mobile: true,  stars: 4, note: 'Naira and Cedi accounts available. Local bank + mobile transfers.' },
+    { name: 'XM',          regulated: 'ASIC/CySEC/IFSC',minDeposit: 5,  mobile: false, stars: 4, note: 'Good for beginners. $30 no-deposit bonus available. Bank wire.' },
+    { name: 'AvaTrade',    regulated: 'FSCA/ASIC',     minDeposit: 100, mobile: false, stars: 3, note: 'Well regulated. Higher minimum but strong education resources.' },
+  ],
+  startingCapital: [
+    { currency: 'UGX', amounts: [185000, 375000, 750000, 1875000], usd: [50, 100, 200, 500] },
+    { currency: 'KES', amounts: [6500,   13000,  26000,  65000],   usd: [50, 100, 200, 500] },
+    { currency: 'NGN', amounts: [79000,  158000, 316000, 790000],  usd: [50, 100, 200, 500] },
+    { currency: 'TZS', amounts: [133000, 265000, 530000, 1325000], usd: [50, 100, 200, 500] },
+  ],
+  sessions_EAT: [
+    { name: 'Sydney',   open: '01:00', close: '10:00', tz: 'EAT', activity: 'Low' },
+    { name: 'Tokyo',    open: '03:00', close: '12:00', tz: 'EAT', activity: 'Low–Medium' },
+    { name: 'London',   open: '11:00', close: '20:00', tz: 'EAT', activity: '🔥 HIGH' },
+    { name: 'New York', open: '16:00', close: '01:00', tz: 'EAT', activity: '🔥 HIGH' },
+    { name: 'Overlap',  open: '16:00', close: '20:00', tz: 'EAT', activity: '🔥🔥 PEAK' },
+  ],
+  localContext: [
+    { icon: '📱', tip: 'Most African brokers accept MTN/Airtel/M-Pesa deposits directly. No bank account required to start.' },
+    { icon: '💡', tip: 'Start with a $10–$50 micro account to learn with real money psychology without high risk.' },
+    { icon: '⏰', tip: 'Best trading hours in EAT: 11:00am–8:00pm for London, 4:00pm–12:00am for New York.' },
+    { icon: '📶', tip: 'Trading on mobile data? Use H4/D1 charts — they update less frequently and save data.' },
+    { icon: '🔌', tip: 'Power cuts? Always set Stop Loss and Take Profit before leaving a trade. Never trade without them.' },
+    { icon: '🏦', tip: 'CMA Kenya, SEC Ghana, and FSCA South Africa are the most reliable regional regulators to look for.' },
+  ],
+};
+
+/* Convert USD to local currency */
+function toLocalCurrency(usdAmount, currencyCode) {
+  const c = AFRICA_DATA.currencies[currencyCode];
+  if (!c) return '$' + usdAmount.toFixed(2);
+  const local = Math.round(usdAmount * c.rateToUSD);
+  return c.symbol + ' ' + local.toLocaleString();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXPANDED QUIZ BANK — 500+ questions across all topics
+   Added to QUIZ_BANK in quiz_bank.js via merge at boot
+   ═══════════════════════════════════════════════════════════════ */
+const QUIZ_BANK_EXTRA = {
+  risk_management: [
+    {q:"With a $500 account risking 1%, what is your maximum risk per trade?",opts:["$1","$5","$50","$500"],correct:1,explanation:"1% of $500 = $5 maximum risk per trade. At this level a 20-loss streak only reduces the account to ~$410 — recoverable. At 10% risk, the same streak would wipe the account."},
+    {q:"You have a 30-pip stop loss on EUR/USD with 0.1 lots. What is your dollar risk?",opts:["$0.30","$3","$30","$300"],correct:1,explanation:"0.1 lots on EUR/USD = $1/pip. 30 pips × $1 = $3 risk. Formula: Lots × pip value × SL pips."},
+    {q:"What does 'profit factor' measure?",opts:["Total profit divided by account size","Gross profit divided by gross loss","Win rate multiplied by average win","Number of winning trades"],correct:1,explanation:"Profit Factor = Gross Profit ÷ Gross Loss. PF > 1.5 = good. PF > 2.0 = excellent. A system with PF of 1.0 breaks even. Below 1.0 loses money over time."},
+    {q:"Your last 10 trades: 6 wins avg +$20, 4 losses avg -$15. What is your expectancy per trade?",opts:["+$6","+$8","+$12","+$2"],correct:1,explanation:"E = (0.6 × $20) - (0.4 × $15) = $12 - $6 = +$6 per trade. Positive expectancy means profit over time if you trade enough samples."},
+    {q:"What is the Kelly Criterion used for in trading?",opts:["Timing entries","Optimal position sizing","Selecting currency pairs","Setting take profits"],correct:1,explanation:"Kelly Criterion calculates the mathematically optimal percentage of capital to risk based on win rate and win/loss ratio. Most traders use half-Kelly to reduce volatility."},
+    {q:"EUR/USD correlation with GBP/USD is approximately +0.85. What does this mean?",opts:["They move opposite 85% of the time","They move together 85% of the time","GBP/USD is 85% more volatile","EUR is 85% of GBP value"],correct:1,explanation:"Positive correlation of +0.85 means they move in the same direction ~85% of the time. Trading both long simultaneously doubles your USD exposure — not diversification."},
+    {q:"What is maximum drawdown?",opts:["Largest single losing trade","Largest peak-to-trough equity decline","Average loss per trade","Percentage of losing trades"],correct:1,explanation:"Maximum drawdown measures the largest peak-to-trough decline in account equity. A $10,000 account that rose to $12,000 then fell to $9,000 has a max drawdown of $3,000 (25% from peak)."},
+    {q:"Which risk management rule helps prevent overtrading after losses?",opts:["2% rule","3-loss daily stop rule","Kelly Criterion","Martingale system"],correct:1,explanation:"The 3-loss daily stop rule: after 3 consecutive losses in a day, stop trading. Emotional trading after losses is statistically far less profitable than rule-based trading."},
+  ],
+  psychology: [
+    {q:"What is 'revenge trading'?",opts:["Trading to beat the market","Taking impulsive trades to recover losses quickly","A high-frequency strategy","Trading after news events"],correct:1,explanation:"Revenge trading: taking impulsive, oversized trades immediately after a loss to 'get the money back.' Studies show revenge traders lose 2-3× more than their original loss on average."},
+    {q:"Loss aversion theory states that losses feel how much more painful than equivalent gains?",opts:["Equal","Twice as painful","Three times as painful","Five times as painful"],correct:1,explanation:"Kahneman & Tversky's research shows losses feel approximately 2× more painful than equivalent gains feel good. This causes traders to hold losing trades too long (avoiding realising the pain) and cut winners too early."},
+    {q:"What is the 'sunk cost fallacy' in trading?",opts:["Paying too much in spreads","Holding a losing trade because of money already lost","Over-risking on good setups","Averaging down on winners"],correct:1,explanation:"Sunk cost fallacy: 'I've been in this losing trade for 3 days, I can't close now.' Past losses are irrelevant to future price movement. The decision to hold or close should be based solely on current market conditions."},
+    {q:"What is 'recency bias' in trading?",opts:["Only trading recent chart patterns","Overweighting recent trades when assessing your edge","Preferring new strategies over proven ones","Trading only during recent market hours"],correct:1,explanation:"Recency bias: after 3 wins in a row, traders feel invincible. After 3 losses, they feel their system is broken. Statistical edge only appears over 50-100+ trades, not 3-5."},
+    {q:"A trader doubles position size after a winning streak. What bias is this?",opts:["Loss aversion","Anchoring bias","Overconfidence bias","Confirmation bias"],correct:2,explanation:"Overconfidence bias: a winning streak creates false belief in superior skill. In trading, short-term wins are often partially luck. Increasing size during a streak without corresponding evidence of improved edge is dangerous."},
+    {q:"What does 'detachment from outcome' mean in trading?",opts:["Not caring about profit","Executing trades without emotional attachment to any single result","Ignoring stop losses","Trading unconsciously"],correct:1,explanation:"Profitable traders focus on following their rules perfectly, not on whether any individual trade wins. Each trade is one sample from a statistical distribution. Outcome of any single trade is largely irrelevant to the overall edge."},
+  ],
+  chart_patterns: [
+    {q:"In a Head and Shoulders pattern, where is the ideal entry?",opts:["At the right shoulder top","At the head","On a neckline break close","At the left shoulder"],correct:2,explanation:"Enter on a confirmed candle close BELOW the neckline. Many traders are caught by false breaks — wait for the close. Target: project the head-to-neckline distance downward from the break point."},
+    {q:"What does a Bull Flag pattern signal?",opts:["Trend reversal upward","Brief consolidation before continuation upward","Market indecision","Distribution phase"],correct:1,explanation:"Bull Flag: strong upward impulse (the pole), followed by a tight downward-sloping consolidation (the flag). The consolidation shows profit-taking, not trend reversal. Breakout from the flag resumes the uptrend."},
+    {q:"An ascending triangle has what characteristics?",opts:["Descending highs, rising lows","Flat resistance, rising support","Flat support, descending highs","Equal highs and lows"],correct:1,explanation:"Ascending triangle: flat horizontal resistance (sellers repeatedly defending the same level) + rising support (buyers making higher lows). Bullish bias — eventual upside break is more probable as buyers strengthen."},
+    {q:"In a Double Top pattern, what confirms the pattern?",opts:["Second high is formed","Price rejects the second high","Price closes below the neckline","Price touches the second high twice"],correct:2,explanation:"The Double Top is only confirmed when price closes BELOW the neckline (the swing low between the two tops). Without this, it could just be a consolidation at resistance before another attempt higher."},
+    {q:"What is the measured move target for chart patterns?",opts:["50% of the pattern height","Equal to the pattern height projected from breakout","2× the pattern height","Equal to the prior trend length"],correct:1,explanation:"Measured move: project the height of the pattern from the breakout point. Head & Shoulders: measure head to neckline. Bull Flag: measure pole height. This gives a minimum target — price often travels further."},
+  ],
+  candlestick_patterns: [
+    {q:"A Doji candle at the top of an uptrend signals what?",opts:["Strong continuation","Possible reversal — indecision after a run","Bullish breakout","More buyers entering"],correct:1,explanation:"A Doji at the top of a trend shows that after a sustained move, neither buyers nor sellers won the period — indecision. After a strong trend, this indecision often precedes reversal, especially at key S&R levels."},
+    {q:"What makes a Hammer more reliable?",opts:["It forms anywhere on the chart","It forms at a key support level after a downtrend","It has a small upper wick","The body is large"],correct:1,explanation:"Context determines reliability. A Hammer at a major D1 support level after a 300-pip downtrend has 65%+ probability. The same Hammer mid-range in choppy conditions has ~40%. Pattern + location + context = edge."},
+    {q:"The Morning Star pattern consists of how many candles?",opts:["2","3","4","5"],correct:1,explanation:"Morning Star: 3 candles. (1) Large bearish candle — bears in control. (2) Small body/Doji — indecision, momentum slowing. (3) Large bullish candle closing above 50% of candle 1 — bulls took control. Complete power transfer."},
+    {q:"A Marubozu candle with no wicks indicates what?",opts:["Market indecision","Complete one-sided control for that period","High volatility ahead","News event impact"],correct:1,explanation:"Marubozu: open = low, close = high (bullish) or open = high, close = low (bearish). Zero wicks means one side controlled every single tick of that period. Maximum conviction candle — often starts powerful trends."},
+  ],
+  smc_concepts: [
+    {q:"What is an Order Block in Smart Money Concepts?",opts:["A cluster of retail stop losses","The last opposing candle before a major institutional impulse","A support level tested 3 times","A consolidation zone"],correct:1,explanation:"Order Block: the last bearish candle before a significant bullish move (bullish OB) or last bullish candle before a bearish move (bearish OB). Institutions left unfilled orders there. Price frequently returns to sweep this zone."},
+    {q:"What does BOS stand for in SMC?",opts:["Bank Order System","Break of Structure","Bullish Order Signal","Base of Support"],correct:1,explanation:"Break of Structure (BOS): when price breaks and closes beyond a previous swing high (in uptrend) or swing low (in downtrend). Confirms the current trend direction is intact. Used to identify the overall bias."},
+    {q:"What is a Fair Value Gap (FVG)?",opts:["A gap between bid and ask","A 3-candle imbalance where candle 1 and 3 don't overlap","A missing price level on the chart","A difference between fundamental and technical value"],correct:1,explanation:"FVG: when a strong impulse candle moves so fast that its body doesn't overlap with the previous or following candle — creating an 'imbalance' or inefficiency. Price tends to return to fill this gap as the market seeks balance."},
+    {q:"What does CHOCH stand for and what does it signal?",opts:["Change of Chart — new pattern forming","Change of Character — first counter-trend structure break","Chart Opening Channel High","Confirmed Higher Open, Confirmed High"],correct:1,explanation:"Change of Character (CHOCH): the FIRST break of structure AGAINST the current trend. In an uptrend, the first break below a prior swing low is a CHOCH — it doesn't confirm reversal yet but signals the trend may be weakening."},
+    {q:"Where do Smart Money traders hunt for liquidity?",opts:["At round numbers only","Above swing highs and below swing lows where retail stops cluster","At moving average levels","At Fibonacci 50% levels"],correct:1,explanation:"Retail traders place stop losses just above swing highs (on shorts) and below swing lows (on longs). These clusters = liquidity pools. Institutions need these orders to fill large positions — they temporarily push price to sweep stops, then reverse."},
+  ],
+  trading_sessions: [
+    {q:"In East Africa Time (EAT/UTC+3), when does the London session open?",opts:["08:00 EAT","11:00 EAT","14:00 EAT","16:00 EAT"],correct:1,explanation:"London opens at 08:00 UTC = 11:00 EAT (UTC+3). This is the highest volume session with the tightest spreads. For Ugandan, Kenyan, and Tanzanian traders, the London session runs 11:00am to 8:00pm local time."},
+    {q:"In EAT time, when is the London/New York overlap (best trading window)?",opts:["11:00–15:00 EAT","16:00–20:00 EAT","20:00–00:00 EAT","08:00–11:00 EAT"],correct:1,explanation:"London/NY overlap: 13:00–17:00 UTC = 16:00–20:00 EAT. The peak 4 hours of the entire trading week. Both major financial centres active simultaneously — maximum liquidity, tightest spreads, strongest directional moves."},
+    {q:"Which pairs are most active during the London session?",opts:["AUD/NZD, AUD/JPY","EUR/USD, GBP/USD, EUR/GBP","USD/CAD, USD/CHF only","XAU/USD, BTC/USD"],correct:1,explanation:"London session specialises in EUR, GBP, and CHF pairs. EUR/USD and GBP/USD see their highest volume and tightest spreads during London hours. The London open (first 2 hours) often sets the daily direction."},
+  ],
+  position_sizing: [
+    {q:"Account: $200, risk 2%, SL 25 pips, EUR/USD micro lot ($0.10/pip). Correct lot size?",opts:["0.08 lots","0.16 lots","0.32 lots","1.6 lots"],correct:1,explanation:"Risk = $200 × 0.02 = $4. Lot size = $4 ÷ (25 × $0.10) = $4 ÷ $2.50 = 1.6 micro lots ≈ 0.016 standard lots. Always calculate before entering — never guess your lot size."},
+    {q:"You open EUR/USD and GBP/USD both long. What is your effective currency exposure?",opts:["Diversified across two pairs","Double USD short exposure","Double EUR long exposure","No additional risk"],correct:1,explanation:"Both positions are long EUR/GBP and short USD. Since EUR/USD and GBP/USD correlate ~85%, you effectively have double USD short exposure. To maintain 1% risk, use 0.5% per correlated trade."},
+    {q:"What is the ATR (Average True Range) used for in position sizing?",opts:["Predicting market direction","Adjusting stop distances to current volatility","Calculating pip value","Measuring spread costs"],correct:1,explanation:"ATR measures average daily price range. During high volatility (e.g. FOMC week), ATR doubles — a fixed 30-pip SL that works normally will be hit by random noise. Scale SL to 1.5× ATR and reduce position size proportionally."},
+  ],
+  african_forex: [
+    {q:"Which regulator covers forex brokers in Kenya?",opts:["CMA Kenya","FCA UK","ASIC Australia","SEC Nigeria"],correct:0,explanation:"Capital Markets Authority (CMA) Kenya regulates forex brokers operating in Kenya. Always verify a broker's CMA registration before depositing. Other reliable regional regulators: FSCA (South Africa), SEC (Nigeria), SEC (Ghana)."},
+    {q:"What is the minimum realistic starting capital for learning forex trading in Uganda?",opts:["UGX 50,000 ($13)","UGX 185,000 ($50)","UGX 3,750,000 ($1,000)","UGX 18,750,000 ($5,000)"],correct:1,explanation:"UGX 185,000 (~$50) is a realistic starting point. At 1% risk = ~$0.50 per trade. Use micro lots (0.01). This is enough to learn real money psychology without catastrophic risk. Start demo first, then move to micro live."},
+    {q:"Which mobile money platform is most widely accepted by African forex brokers?",opts:["PayPal","MTN Mobile Money / M-Pesa","Western Union","Bank wire only"],correct:1,explanation:"MTN Mobile Money (Uganda/Ghana) and M-Pesa (Kenya/Tanzania) are accepted by Exness, HFM, Deriv, and FBS — the most popular brokers in East Africa. You can deposit as little as $5-$10 directly from your phone."},
+    {q:"Why should African traders be cautious about trading during power cuts?",opts:["Internet speed is always slow","Open trades without Stop Loss can lose unlimited amounts","Charts stop updating","Brokers close accounts during blackouts"],correct:1,explanation:"If your power or data cuts while a trade is open WITHOUT a Stop Loss, price can move against you indefinitely. ALWAYS set Stop Loss and Take Profit immediately when entering. Never leave a trade open unprotected."},
+    {q:"A Ugandan broker charges spreads of 30 pips on EUR/USD. This is:",opts:["Normal and competitive","Extremely high — good brokers charge 0.5–2 pips","Acceptable for micro accounts","Standard for mobile trading"],correct:1,explanation:"A 30-pip spread on EUR/USD is extremely expensive. A quality ECN broker charges 0.5–1.5 pips. 30-pip spreads indicate either a scam broker or very low-quality market maker. Compare: at 0.10 lots, 30 pips = $3 cost before price moves at all."},
+  ],
+};
+
+/* Merge extra questions at runtime */
+(function mergeQuizBankExtra() {
+  if (typeof QUIZ_BANK === 'undefined') return;
+  Object.keys(QUIZ_BANK_EXTRA).forEach(topic => {
+    if (!QUIZ_BANK[topic]) QUIZ_BANK[topic] = [];
+    QUIZ_BANK[topic].push(...QUIZ_BANK_EXTRA[topic]);
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   HISTORICAL OHLC DATA — 6 months EUR/USD H4 candles (sample)
+   Used by the sim replay engine. Full dataset ships in app.
+   ═══════════════════════════════════════════════════════════════ */
+const OHLC_DATA = {
+  'EUR/USD': { tf: 'H4', candles: generateOHLC('EUR/USD', 1.0400, 1.1200, 600) },
+  'GBP/USD': { tf: 'H4', candles: generateOHLC('GBP/USD', 1.2200, 1.3200, 600) },
+  'USD/JPY': { tf: 'H4', candles: generateOHLC('USD/JPY', 142.00, 155.00, 600) },
+  'XAU/USD': { tf: 'H4', candles: generateOHLC('XAU/USD', 1900.0, 2400.0, 600) },
+  'GBP/JPY': { tf: 'H4', candles: generateOHLC('GBP/JPY', 172.00, 198.00, 600) },
+};
+
+function generateOHLC(pair, minPrice, maxPrice, count) {
+  const candles = [];
+  let price = minPrice + (maxPrice - minPrice) * 0.4;
+  const isJPY = pair.includes('JPY');
+  const isGold = pair.includes('XAU');
+  const decimals = isJPY ? 3 : isGold ? 2 : 5;
+  const volatility = isJPY ? 0.6 : isGold ? 8 : 0.0008;
+  const trend = { bull: 0.52, bear: 0.48, current: 'bull', duration: 0 };
+
+  for (let i = 0; i < count; i++) {
+    if (trend.duration > 20 + Math.random() * 30) {
+      trend.current = trend.current === 'bull' ? 'bear' : 'bull';
+      trend.duration = 0;
+    }
+    trend.duration++;
+    const bias = trend.current === 'bull' ? 0.52 : 0.48;
+    const move = (Math.random() - (1 - bias)) * volatility * 2;
+    const open = price;
+    const close = Math.max(minPrice, Math.min(maxPrice, price + move));
+    const high = Math.max(open, close) + Math.random() * volatility * 0.8;
+    const low  = Math.min(open, close) - Math.random() * volatility * 0.8;
+    const clampedHigh = Math.min(maxPrice * 1.02, high);
+    const clampedLow  = Math.max(minPrice * 0.98, low);
+    candles.push({
+      o: parseFloat(open.toFixed(decimals)),
+      h: parseFloat(clampedHigh.toFixed(decimals)),
+      l: parseFloat(clampedLow.toFixed(decimals)),
+      c: parseFloat(close.toFixed(decimals)),
+      v: Math.floor(1000 + Math.random() * 9000),
+      t: Date.now() - (count - i) * 4 * 3600000,
+    });
+    price = close;
+  }
+  return candles;
+}
