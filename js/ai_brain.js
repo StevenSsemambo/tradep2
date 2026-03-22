@@ -1346,38 +1346,339 @@ function generatePatternAnswer(q, ctx) {
    Watches for concerning patterns and surfaces warnings
    Called from the chat before the user even asks
    ════════════════════════════════════════════════════════════════ */
-function getProactiveAlert() {
+/* ═══════════════════════════════════════════════════════════════
+   MENTOR MEMORY ENGINE
+   Gives TradeMind genuine continuity across sessions.
+   Stores observations, references past conversations naturally.
+   ═══════════════════════════════════════════════════════════════ */
+
+function _mm() { return STATE.mentorMemory || {}; }
+
+/* Called when the mentor screen opens — builds session greeting */
+function buildSessionGreeting() {
   const ctx = buildFullContext();
-  const { allTrades, emotionalRisk, patterns, streak, name } = ctx;
+  const { name, allTrades, wr, streak, patterns, userTier } = ctx;
+  const mm = _mm();
+  const now = new Date();
+  const hr = now.getHours();
+  const today = now.toDateString();
+  const isNewDay = mm.lastSessionDate !== today;
+
+  // Update session tracking
+  if (!STATE.mentorMemory) STATE.mentorMemory = {};
+  STATE.mentorMemory.lastSessionDate = today;
+  STATE.mentorMemory.sessionsTotal = (mm.sessionsTotal || 0) + (isNewDay ? 1 : 0);
+
+  const timeGreet = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
+  const sessions = mm.sessionsTotal || 1;
+
+  // First ever session
+  if (sessions <= 1 && allTrades.length === 0) {
+    return `Good ${timeGreet}, ${name}! I'm TradeMind — and I want to be upfront with you: I'm not just a FAQ bot. I actually read your journal, track your patterns, and remember what we talk about. The more you use the app, the sharper my coaching gets.<br><br>What's on your mind today? You can ask me anything — forex concepts, your trading performance, or just tell me how your last trade went.`;
+  }
+
+  // Reference last session topics if returning
+  const lastTopics = mm.lastTopics || [];
+  const lastNote = (mm.notes || []).slice(-1)[0];
+  const recentLoss = allTrades.slice(-3).filter(t => parseFloat(t.pnl) < 0).length >= 2;
+  const critPattern = patterns.find(p => p.severity === 'critical');
+  const highPattern = patterns.find(p => p.severity === 'high');
+
+  let greeting = `Good ${timeGreet}, ${name}. `;
+
+  // Reference something specific from last time
+  if (lastTopics.length > 0 && isNewDay) {
+    const topic = lastTopics[lastTopics.length - 1];
+    const topicRefs = {
+      'rsi': `Last time we talked about RSI — did you get a chance to spot any divergences on the chart?`,
+      'smc': `We got into SMC order blocks last session. Any setups you identified since then?`,
+      'risk_management': `We covered risk management last time. How has your position sizing been going?`,
+      'psychology': `We talked about trading psychology last session. How's the mental side been treating you?`,
+      'support_resistance': `We discussed S&R levels last time. Seen any clean bounces lately?`,
+      'fibonacci': `We covered Fibonacci last session. Try applying it to any recent charts?`,
+    };
+    const ref = topicRefs[topic] || `Last session we covered ${topic.replace(/_/g,' ')}.`;
+    greeting += ref;
+  } else if (recentLoss && isNewDay) {
+    greeting += `I noticed your last couple of trades didn't go to plan. That happens to everyone — the question is what we learn from it. How are you feeling about it?`;
+  } else if (critPattern) {
+    greeting += `There's something important in your data I want to flag: ${critPattern.insight.split('.')[0]}. Want to dig into that?`;
+  } else if (allTrades.length > 0 && isNewDay) {
+    const lastTrade = allTrades[allTrades.length - 1];
+    const pnl = parseFloat(lastTrade.pnl) || 0;
+    if (pnl > 0) {
+      greeting += `Good to see you — your last trade on ${lastTrade.pair || 'the charts'} was a win. Let's keep that going.`;
+    } else {
+      greeting += `Welcome back. ${allTrades.length} trades in the journal — that data is starting to tell a real story.`;
+    }
+  } else {
+    greeting += `Good to have you back.`;
+  }
+
+  // Add a proactive note if relevant
+  const proAlert = getProactiveAlert(true);
+  if (proAlert && proAlert.compact) {
+    greeting += `<br><br>${proAlert.compact}`;
+  }
+
+  return greeting;
+}
+
+/* Save a memory note about the user */
+function saveMentorNote(text, topic) {
+  if (!STATE.mentorMemory) STATE.mentorMemory = {};
+  if (!STATE.mentorMemory.notes) STATE.mentorMemory.notes = [];
+  STATE.mentorMemory.notes.push({ text, topic: topic || 'general', date: new Date().toISOString() });
+  if (STATE.mentorMemory.notes.length > 20) STATE.mentorMemory.notes.shift();
+}
+
+/* Track topic asked about */
+function trackTopic(topic) {
+  if (!STATE.mentorMemory) STATE.mentorMemory = {};
+  if (!STATE.mentorMemory.askedAbout) STATE.mentorMemory.askedAbout = {};
+  STATE.mentorMemory.askedAbout[topic] = (STATE.mentorMemory.askedAbout[topic] || 0) + 1;
+  if (!STATE.mentorMemory.lastTopics) STATE.mentorMemory.lastTopics = [];
+  STATE.mentorMemory.lastTopics.push(topic);
+  if (STATE.mentorMemory.lastTopics.length > 10) STATE.mentorMemory.lastTopics.shift();
+}
+
+/* What topics has this user asked about most? */
+function getTopUserTopics() {
+  const asked = _mm().askedAbout || {};
+  return Object.entries(asked).sort((a,b) => b[1] - a[1]).slice(0,3).map(e => e[0]);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROACTIVE INTERVENTION ENGINE — upgraded
+   Autonomous interventions, not just alerts on greeting.
+   ═══════════════════════════════════════════════════════════════ */
+
+function getProactiveAlert(compactMode) {
+  const ctx = buildFullContext();
+  const { allTrades, emotionalRisk, patterns, streak, name, wr, planCompliance } = ctx;
   const j = STATE.journal || [];
+  const pro = STATE.proactive || {};
+  const today = new Date().toDateString();
+  const dismissed = pro.dismissedToday || [];
 
-  // Recent losing streak
-  const last5 = [...(STATE.journal||[]), ...(STATE.simTrades||[])].slice(-5);
-  const last5Losses = last5.filter(t => parseFloat(t.pnl) <= 0).length;
-  if (last5Losses >= 4) {
-    return `⚠️ <strong style="color:var(--red)">Heads up, ${name}:</strong> You have lost 4 of your last 5 trades. Before opening any new positions, review what went wrong. Revenge trading from here is the #1 account killer.`;
+  // Don't fire same intervention twice today
+  const canFire = type => !dismissed.includes(type);
+
+  // ── CRITICAL: 3+ consecutive losses (highest priority) ──
+  const last5 = allTrades.slice(-5);
+  const consecLosses = (() => {
+    let n = 0;
+    for (let i = allTrades.length - 1; i >= 0; i--) {
+      if (parseFloat(allTrades[i].pnl) <= 0) n++; else break;
+    }
+    return n;
+  })();
+
+  if (consecLosses >= 3 && canFire('consec_losses')) {
+    const msg = {
+      type: 'consec_losses',
+      severity: 'critical',
+      title: `${consecLosses} losses in a row`,
+      body: `${name}, you have lost ${consecLosses} trades in a row. I want to be direct with you: the statistically correct move right now is to stop trading today. Not because you are a bad trader — because every professional has a daily loss limit, and yours has been hit.<br><br>
+<strong>What to do instead:</strong><br>
+• Close the trade screen<br>
+• Review what happened in each of those ${consecLosses} trades<br>
+• Write one honest sentence about what you would do differently<br>
+• Come back fresh tomorrow<br><br>
+The traders who survive long-term are not the most talented — they are the ones who protect their capital on bad days.`,
+      cta: "Understood — I'll step away",
+      ctaAction: `dismissIntervention('consec_losses');navigate('journal')`,
+      compact: `⚠️ ${consecLosses} losses in a row — consider stepping away for today.`,
+    };
+    if (!compactMode) return msg;
+    return { compact: msg.compact };
   }
 
-  // Emotional risk from recent journal
-  if (emotionalRisk) {
-    return `🧠 <strong style="color:var(--gold)">Emotional pattern detected:</strong> Recent entries show frustration or revenge trading. Your win rate drops sharply in this state. Consider taking a break before the next trade.`;
+  // ── HIGH: Emotional state before trading ──
+  if (emotionalRisk && canFire('emotional_risk')) {
+    const revengeCount = j.slice(-5).filter(t => t.mood === 'revenge').length;
+    const msg = {
+      type: 'emotional_risk',
+      severity: 'high',
+      title: 'Emotional trading pattern active',
+      body: `${name}, your recent journal entries show ${revengeCount > 0 ? `${revengeCount} revenge trade${revengeCount>1?'s':''} logged` : 'frustration or greed in your mood entries'}. Here is the hard data: emotional trades in your journal have a ${_emotionalWinRate(j)}% win rate, compared to your overall ${wr}% rate when calm.<br><br>
+This is not a character flaw — it's brain chemistry. The fix is mechanical:<br>
+1. Before any trade, rate your stress 1–10<br>
+2. If above 6, no trade<br>
+3. That simple rule could be worth hundreds of dollars to you`,
+      cta: "I hear you — checking my emotional state",
+      ctaAction: `dismissIntervention('emotional_risk')`,
+      compact: `🧠 Emotional pattern in recent trades — your calm win rate is higher.`,
+    };
+    if (!compactMode) return msg;
+    return { compact: msg.compact };
   }
 
-  // Streak at risk
-  if (streak > 5 && STATE.dailyCheckIn !== new Date().toDateString()) {
-    return `🔥 <strong style="color:var(--accent)">Streak check:</strong> You are on a ${streak}-day streak! Don't forget to log in and study today to keep it alive.`;
-  }
-
-  // Long gap since journalling
-  if (j.length > 0) {
-    const lastEntry = new Date(j[j.length-1].date || j[j.length-1].time || 0);
-    const daysSince = Math.round((Date.now() - lastEntry.getTime()) / 86400000);
-    if (daysSince >= 5) {
-      return `📓 <strong style="color:var(--gold)">Journal gap:</strong> You have not logged a trade in ${daysSince} days. Even review sessions deserve an entry — what did you practice or learn?`;
+  // ── HIGH: Plan compliance dropped below 60% ──
+  if (planCompliance !== null && planCompliance < 60 && allTrades.length >= 5 && canFire('plan_compliance')) {
+    const followWR = _planWinRate(j, 'yes');
+    const breakWR = _planWinRate(j, 'no');
+    if (followWR > 0 && breakWR > 0) {
+      const msg = {
+        type: 'plan_compliance',
+        severity: 'high',
+        title: `Plan compliance: ${planCompliance}%`,
+        body: `${name}, your plan compliance has dropped to ${planCompliance}%. Here is why that matters — in your own data:<br><br>
+📊 When you follow your plan: <strong style="color:var(--accent)">${followWR}% win rate</strong><br>
+📊 When you break your plan: <strong style="color:var(--red)">${breakWR}% win rate</strong><br><br>
+The ${followWR - breakWR}-point difference is your discipline gap. Your plan works. Your in-the-moment decisions consistently underperform it.<br><br>
+For the next 5 trades: before entry, physically write down every rule your setup meets. Don't enter unless all are checked.`,
+        cta: "Got it — back to the plan",
+        ctaAction: `dismissIntervention('plan_compliance')`,
+        compact: `📋 Plan compliance at ${planCompliance}% — your plan wins ${followWR}% vs ${breakWR}% off-plan.`,
+      };
+      if (!compactMode) return msg;
+      return { compact: msg.compact };
     }
   }
 
+  // ── MODERATE: Long journal gap ──
+  if (j.length > 0 && canFire('journal_gap')) {
+    const lastEntry = new Date(j[j.length-1].date || j[j.length-1].time || 0);
+    const daysSince = Math.round((Date.now() - lastEntry.getTime()) / 86400000);
+    if (daysSince >= 4) {
+      const msg = {
+        type: 'journal_gap',
+        severity: 'medium',
+        title: `${daysSince} days since last journal entry`,
+        body: `${name}, it has been ${daysSince} days since your last journal entry. I want to be honest with you — this is not a minor thing. The journal is not record-keeping, it is the mechanism by which you improve. Without data, I cannot detect your patterns, and you cannot learn from your trades.<br><br>Even a 2-minute entry covering: pair, direction, P&L, mood, and one sentence of notes is enough. Take 2 minutes right now.`,
+        cta: "Log a trade now",
+        ctaAction: `dismissIntervention('journal_gap');navigate('journal');setTimeout(showNewEntryModal,300)`,
+        compact: `📓 ${daysSince} days since last journal entry — your patterns are going untracked.`,
+      };
+      if (!compactMode) return msg;
+      return { compact: msg.compact };
+    }
+  }
+
+  // ── POSITIVE: Streak check (encouraging, not nagging) ──
+  if (streak >= 7 && canFire('streak_milestone') && STATE.dailyCheckIn === new Date().toDateString()) {
+    if (!compactMode) return null;
+    return { compact: `🔥 ${streak}-day streak — you're building a real habit.` };
+  }
+
+  // ── POSITIVE: First profitable week ──
+  const thisWeek = allTrades.filter(t => Date.now() - new Date(t.date||t.time||0).getTime() < 7*86400000);
+  const weekPnl = thisWeek.reduce((a,t) => a + (parseFloat(t.pnl)||0), 0);
+  if (weekPnl > 0 && thisWeek.length >= 3 && canFire('profitable_week')) {
+    if (!compactMode) return null;
+    return { compact: `✅ Profitable week (+$${weekPnl.toFixed(0)}) — note what's working.` };
+  }
+
   return null;
+}
+
+function dismissIntervention(type) {
+  if (!STATE.proactive) STATE.proactive = { dismissedToday: [] };
+  if (!STATE.proactive.dismissedToday) STATE.proactive.dismissedToday = [];
+  STATE.proactive.dismissedToday.push(type);
+  saveState();
+}
+
+/* Reset dismissed list each new day */
+function _resetDailyInterventions() {
+  const today = new Date().toDateString();
+  if (STATE.proactive?.lastInterventionDate !== today) {
+    if (!STATE.proactive) STATE.proactive = {};
+    STATE.proactive.dismissedToday = [];
+    STATE.proactive.lastInterventionDate = today;
+  }
+}
+
+function _emotionalWinRate(journal) {
+  const emotional = journal.filter(t => ['revenge','frustrated','greedy','angry'].includes(t.mood));
+  if (!emotional.length) return 35;
+  return Math.round(emotional.filter(t => parseFloat(t.pnl) > 0).length / emotional.length * 100);
+}
+
+function _planWinRate(journal, planVal) {
+  const trades = journal.filter(t => t.plan === planVal);
+  if (!trades.length) return 0;
+  return Math.round(trades.filter(t => parseFloat(t.pnl) > 0).length / trades.length * 100);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TRADE POST-MORTEM ENGINE
+   Automatically debriefs every closed sim trade.
+   Fires immediately after closeSimTrade() is called.
+   ═══════════════════════════════════════════════════════════════ */
+
+function generateTradePostMortem(trade, ctx) {
+  if (!trade) return null;
+  const { name, patterns, allTrades, bestPair, worstDay } = ctx || buildFullContext();
+  const pnl = parseFloat(trade.pnl) || 0;
+  const isWin = pnl >= 0;
+  const mm = _mm();
+
+  // Core result line
+  let lines = [];
+
+  // Win analysis
+  if (isWin) {
+    const rr = parseFloat(trade.rr) || 0;
+    if (rr >= 2) lines.push(`R:R of ${rr.toFixed(1)}:1 — above your average. That's the discipline that compounds.`);
+    if (trade.plan === 'yes') lines.push(`Plan followed. This is what controlled execution looks like.`);
+    if (trade.pair === bestPair) lines.push(`${trade.pair} is your strongest pair — results like this confirm why.`);
+    // Check if this setup has a strong pattern
+    const setupPattern = patterns.find(p => p.type === 'best_setup' && p.insight.includes(trade.setup));
+    if (setupPattern) lines.push(`Your "${trade.setup}" setup is your best historically — you played it well.`);
+    if (!lines.length) lines.push(`Clean execution. Note what you did right so you can repeat it.`);
+  }
+
+  // Loss analysis
+  else {
+    if (trade.plan === 'no') lines.push(`Plan was broken. In your data, off-plan trades lose ${_planWinRate(STATE.journal,'no')}% of the time — this fits the pattern.`);
+    if (['revenge','frustrated','greedy'].includes(trade.mood)) lines.push(`Mood logged as "${trade.mood}" — emotional state likely affected this trade. Consider the 30-minute rule after any loss.`);
+    const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+    const worstDayPattern = patterns.find(p => p.type === 'worst_day' && p.insight.includes(dayName));
+    if (worstDayPattern) lines.push(`${dayName} is your statistically weakest day. This result is part of that pattern.`);
+    if (!lines.length) lines.push(`Review the chart now while the trade is fresh. What would you do differently?`);
+  }
+
+  // One concrete next-action
+  const action = isWin
+    ? `Tag this trade with setup type in the Journal so the pattern gets tracked.`
+    : `Before your next trade: re-read your entry rules and confirm all criteria are met.`;
+
+  // Save as memory note
+  saveMentorNote(`${isWin?'Win':'Loss'} on ${trade.pair||'unknown'} — ${lines[0]}`, 'trade_debrief');
+
+  return {
+    title: isWin ? `✅ Trade closed — +$${pnl.toFixed(2)}` : `❌ Trade closed — -$${Math.abs(pnl).toFixed(2)}`,
+    insight: lines[0],
+    action,
+    isWin,
+  };
+}
+
+/* Show post-mortem as a dismissible card in the trade screen */
+function showTradePostMortem(trade) {
+  const mortem = generateTradePostMortem(trade);
+  if (!mortem) return;
+
+  const card = document.createElement('div');
+  card.id = 'postmortem-card';
+  card.style.cssText = `position:fixed;bottom:calc(var(--total-nav,62px)+12px);left:12px;right:12px;max-width:480px;margin:0 auto;z-index:800;background:var(--bg2);border:1px solid ${mortem.isWin?'var(--accent)':'var(--red)'};border-radius:16px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:slideUp .3s cubic-bezier(.34,1.56,.64,1)`;
+
+  card.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+      <div style="font-family:var(--display);font-weight:700;font-size:14px;color:${mortem.isWin?'var(--accent)':'var(--red)'}">${mortem.title}</div>
+      <button onclick="document.getElementById('postmortem-card')?.remove()" style="background:none;border:none;cursor:pointer;color:var(--txt3);font-size:18px;line-height:1;padding:0 0 0 8px">×</button>
+    </div>
+    <div style="font-size:13px;color:var(--txt2);line-height:1.6;margin-bottom:8px">${mortem.insight}</div>
+    <div style="font-size:11px;color:var(--txt3);border-top:1px solid var(--bdr3);padding-top:8px">→ ${mortem.action}</div>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button onclick="navigate('mentor');setTimeout(()=>{const i=document.getElementById('chat-inp');if(i){i.value='Debrief my last trade';submitChat();}},400);document.getElementById('postmortem-card')?.remove()" style="flex:1;padding:7px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px;font-size:11px;font-family:var(--display);font-weight:700;cursor:pointer;color:var(--txt2)">Full analysis →</button>
+      <button onclick="document.getElementById('postmortem-card')?.remove()" style="padding:7px 14px;background:none;border:1px solid var(--bdr2);border-radius:8px;font-size:11px;cursor:pointer;color:var(--txt3)">Dismiss</button>
+    </div>`;
+
+  document.body.appendChild(card);
+  setTimeout(() => card?.remove(), 12000);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1385,45 +1686,169 @@ function getProactiveAlert() {
    generateSmartResponse() is the single entry point.
    It tries smart routing first, falls back to existing logic.
    ════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   NATURAL LANGUAGE HUMANISER
+   Strips robotic patterns, adds genuine conversational flow.
+   Called on every response before delivery.
+   ═══════════════════════════════════════════════════════════════ */
+
+function _humanise(text, ctx) {
+  if (!text || text.length < 20) return text;
+  const name = (ctx && ctx.name) || (STATE.user && STATE.user.name) || '';
+
+  // ── Remove robotic openers ──
+  const roboticOpeners = [
+    /^(Certainly!?|Absolutely!?|Of course!?|Sure!?|Great question!?|That's a great question!?)[,\s]*/i,
+    /^(I understand that|I can help with that|I'd be happy to)[,\s]*/i,
+    /^As an AI[,\s]*/i,
+    /^As your AI mentor[,\s]*/i,
+  ];
+  roboticOpeners.forEach(re => { text = text.replace(re, ''); });
+
+  // ── Capitalise if we stripped the opener ──
+  if (text.length > 0) text = text.charAt(0).toUpperCase() + text.slice(1);
+
+  // ── Occasional first-name use (not every message — that gets annoying) ──
+  const useNameChance = Math.random();
+  if (name && useNameChance > 0.7 && !text.includes(name)) {
+    // Insert name naturally at a sentence break or at start
+    const sentences = text.split('. ');
+    if (sentences.length > 2 && Math.random() > 0.5) {
+      const idx = Math.floor(Math.random() * (sentences.length - 1)) + 1;
+      sentences[idx] = name + ', ' + sentences[idx].charAt(0).toLowerCase() + sentences[idx].slice(1);
+      text = sentences.join('. ');
+    }
+  }
+
+  // ── Replace overly formal phrases with natural ones ──
+  const replacements = [
+    [/In conclusion/gi, 'Bottom line:'],
+    [/Furthermore/gi, 'Also'],
+    [/It is important to note that/gi, 'Worth noting:'],
+    [/It should be noted that/gi, ''],
+    [/\bHowever, it is\b/gi, "That said, it's"],
+    [/In order to/gi, 'To'],
+    [/At this point in time/gi, 'right now'],
+    [/Prior to/gi, 'Before'],
+    [/Utilize/gi, 'use'],
+    [/Implement/gi, 'use'],
+    [/I hope this helps/gi, ''],
+    [/Feel free to ask/gi, 'Ask me anything else'],
+    [/Don't hesitate to/gi, 'Go ahead and'],
+  ];
+  replacements.forEach(([from, to]) => { text = text.replace(from, to); });
+
+  return text.trim();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTEXT-AWARE RESPONSE ENRICHER
+   Adds user-specific data snippets to generic answers.
+   e.g. if answering about RSI, append "Your RSI-based trades..." 
+   ═══════════════════════════════════════════════════════════════ */
+
+function _enrichWithPersonalData(response, topic, ctx) {
+  if (!ctx || ctx.allTrades.length < 5) return response;
+
+  const enrichments = {
+    'rsi': () => {
+      const rsiTrades = ctx.allTrades.filter(t => t.setup && /rsi/i.test(t.setup));
+      if (rsiTrades.length >= 3) {
+        const wr = Math.round(rsiTrades.filter(t=>parseFloat(t.pnl)>0).length/rsiTrades.length*100);
+        return `<br><br><em style="color:var(--txt3)">Your RSI-tagged trades: ${rsiTrades.length} trades, ${wr}% win rate.</em>`;
+      }
+      return '';
+    },
+    'support_resistance': () => {
+      const srTrades = ctx.allTrades.filter(t => t.setup && /s.r|support|bounce/i.test(t.setup));
+      if (srTrades.length >= 3) {
+        const wr = Math.round(srTrades.filter(t=>parseFloat(t.pnl)>0).length/srTrades.length*100);
+        return `<br><br><em style="color:var(--txt3)">Your S/R bounce trades: ${srTrades.length} trades, ${wr}% win rate.</em>`;
+      }
+      return '';
+    },
+    'risk_management': () => {
+      const avgRR = ctx.allTrades.filter(t=>t.rr).reduce((a,t)=>a+parseFloat(t.rr),0) / (ctx.allTrades.filter(t=>t.rr).length||1);
+      if (avgRR > 0) return `<br><br><em style="color:var(--txt3)">Your current average achieved R:R: ${avgRR.toFixed(1)}:1.</em>`;
+      return '';
+    },
+    'psychology': () => {
+      const calmTrades = ctx.allTrades.filter(t=>t.mood==='calm'||t.mood==='focused');
+      if (calmTrades.length >= 3) {
+        const calmWR = Math.round(calmTrades.filter(t=>parseFloat(t.pnl)>0).length/calmTrades.length*100);
+        return `<br><br><em style="color:var(--txt3)">When calm/focused, your win rate: ${calmWR}% (${calmTrades.length} trades).</em>`;
+      }
+      return '';
+    },
+  };
+
+  const enrichFn = enrichments[topic];
+  if (enrichFn) {
+    const extra = enrichFn();
+    if (extra) return response + extra;
+  }
+  return response;
+}
+
 function generateSmartResponse(input) {
   const q = input.toLowerCase().trim();
   const ctx = buildFullContext();
 
+  // Reset daily interventions if new day
+  _resetDailyInterventions();
+
+  // Track topic for memory
+  const topicMap = {
+    'rsi|relative strength': 'rsi', 'macd': 'macd', 'fibonacci|fib': 'fibonacci',
+    'support|resistance|s.r': 'support_resistance', 'smc|order block|fair value': 'smc',
+    'risk|position size|stop loss': 'risk_management', 'psychology|emotion|mind': 'psychology',
+    'session|london|new york': 'trading_sessions', 'candle|hammer|doji|engulf': 'candlesticks',
+    'moving average|ema|sma': 'moving_averages', 'bollinger': 'bollinger',
+  };
+  Object.entries(topicMap).forEach(([pattern, topic]) => {
+    if (new RegExp(pattern, 'i').test(q)) trackTopic(topic);
+  });
+
   // Check if user is answering a quiz
   if (STATE._quizActive && STATE._quizKeywords) {
     const score = scoreQuizAnswer(input, ctx);
-    if (score) return score;
+    if (score) return _humanise(score, ctx);
   }
 
   // Try smart router first
   let smartResp = smartAIResponse(input);
-  
-  // Adapt to personality
   if (smartResp) {
+    // Detect topic for personal data enrichment
+    const topicForEnrich = Object.entries(topicMap).find(([p]) => new RegExp(p,'i').test(q));
+    if (topicForEnrich) smartResp = _enrichWithPersonalData(smartResp, topicForEnrich[1], ctx);
     smartResp = adaptResponseToPersonality(smartResp, ctx);
+    return _humanise(smartResp, ctx);
   }
-  
-  if (smartResp) return smartResp;
 
   // Fall back to existing 3-tier chain
   try {
+    let resp = '';
     if (typeof generateFloatResponse === 'function') {
-      const r = generateFloatResponse(input);
-      if (r && r !== 'undefined') return r;
+      resp = generateFloatResponse(input);
     }
-    if (typeof generateEnhancedResponse === 'function') {
-      const r = generateEnhancedResponse(input);
-      if (r && r !== 'undefined') return r;
+    if ((!resp || resp === 'undefined') && typeof generateResponse === 'function') {
+      resp = generateResponse(input);
     }
-    if (typeof generateResponse === 'function') {
-      return generateResponse(input);
+    if (resp && resp !== 'undefined') {
+      const topicForEnrich = Object.entries(topicMap).find(([p]) => new RegExp(p,'i').test(q));
+      if (topicForEnrich) resp = _enrichWithPersonalData(resp, topicForEnrich[1], ctx);
+      return _humanise(resp, ctx);
     }
   } catch(e) {
     console.warn('AI error:', e);
-    return typeof generateResponse === 'function' ? generateResponse(input) : 'Ask me anything about trading!';
   }
 
-  return typeof generateResponse === 'function' ? generateResponse(input) : 'Ask me anything about trading!';
+  return _humanise(
+    typeof generateResponse === 'function'
+      ? generateResponse(input)
+      : "I didn't quite catch that. Try asking about a concept, your patterns, or say: review my last trade.",
+    ctx
+  );
 }
 
 console.log('✅ AI Brain loaded: Pattern Detection, Quiz Engine, Level-Aware Teaching, Study Plans, Emotional Coaching');
