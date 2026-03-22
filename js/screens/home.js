@@ -166,33 +166,24 @@ function renderHome() {
         </div>
       </div>
 
-      <!-- ── QUICK ACCESS ── -->
+      <!-- ── QUICK ACCESS GRID (2×4 + More) ── -->
       <div class="section-lbl a-fadeup4">Quick Access</div>
-      <div class="h-scroll a-fadeup4" style="margin-bottom:16px">
+      <div class="a-fadeup4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
         ${[
           {icon:'📚',label:'Lessons',   sub:completedCount()+'/'+totalLessons(), action:'learn'},
-          {icon:'📈',label:'Practice',  sub:'Sim trade',                         action:'trade'},
-          {icon:'🤖',label:'AI Mentor', sub:'Ask anything',                      action:'mentor'},
-          {icon:'⚔️',label:'Strategies',sub:STRATEGIES.length+' setups',         action:'strategies'},
-          {icon:'🧮',label:'Calculator',sub:'6 tools',                           action:'calculator'},
-          {icon:'🃏',label:'Flashcards',sub:FLASHCARDS.length+' cards',          action:'flashcards'},
-          {icon:'🎮',label:'Patterns',  sub:'Earn XP',                           action:'patterns'},
-          {icon:'🕯️',label:'Candles',   sub:'Bible',                             action:'candlebible'},
-          {icon:'🗺️',label:'Skill Map', sub:'Roadmap',                           action:'skillmap'},
-          {icon:'📖',label:'Knowledge', sub:'Vault',                             action:'vault'},
-          {icon:'🌍',label:'Pairs',     sub:'Deep profiles',                     action:'pairprofiles'},
-          {icon:'🧬',label:'DNA',       sub:'Your profile',                      action:'dna'},
-          {icon:'🏆',label:'Challenges',sub:'18 goals',                          action:'challenges'},
-          {icon:'⚡',label:'Speed Round',sub:'60s blitz',                        action:'speedround'},
-          {icon:'✅',label:'Checklist', sub:'Pre-trade',                          action:'checklist'},
-          {icon:'📉',label:'Risk Ruin', sub:'Calculator',                         action:'riskofRuin'},
-          {icon:'🌐',label:'Correlation',sub:'Pair matrix',                       action:'correlation'},
+          {icon:'📈',label:'Practice',  sub:'Sim trade',   action:'trade'},
+          {icon:'🤖',label:'AI Mentor', sub:'Ask anything',action:'mentor'},
+          {icon:'⚔️',label:'Strategies',sub:'Setups',      action:'strategies'},
+          {icon:'🧮',label:'Calculator',sub:'6 tools',     action:'calculator'},
+          {icon:'🃏',label:'Flashcards',sub:FLASHCARDS.length+' cards',action:'flashcards'},
+          {icon:'📖',label:'Cases',     sub:'Real trades', action:'casestudies'},
+          {icon:'⋯',label:'More',       sub:'All tools',   action:'more'},
         ].map(a => `
           <div class="qa-card"
                ontouchstart="_qaTx=event.touches[0].clientX;_qaTy=event.touches[0].clientY;_qaMoved=false;this.style.transform='scale(.94)';this.style.borderColor='var(--accent)'"
                ontouchmove="_qaMoved=true;this.style.transform='';this.style.borderColor=''"
-               ontouchend="this.style.transform='';this.style.borderColor='';if(!_qaMoved&&Math.abs(event.changedTouches[0].clientX-_qaTx)<12&&Math.abs(event.changedTouches[0].clientY-_qaTy)<12){event.preventDefault();navigate('${a.action}')}"
-               onclick="if(!('ontouchstart' in window))navigate('${a.action}')">
+               ontouchend="this.style.transform='';this.style.borderColor='';if(!_qaMoved&&Math.abs(event.changedTouches[0].clientX-_qaTx)<12&&Math.abs(event.changedTouches[0].clientY-_qaTy)<12){event.preventDefault();${ a.action==='more' ? "showMoreMenu()" : "navigate('"+a.action+"')" }}"
+               onclick="if(!('ontouchstart' in window)){ ${ a.action==='more' ? "showMoreMenu()" : "navigate('"+a.action+"')" }}">
             <div style="font-size:22px">${a.icon}</div>
             <div style="font-size:10px;font-weight:700;font-family:var(--display);line-height:1.2">${a.label}</div>
             <div style="font-size:9px;color:var(--txt3);margin-top:1px">${a.sub}</div>
@@ -225,6 +216,33 @@ function renderHome() {
         }).join('')}
       </div>
     </div>
+
+      <!-- ── WEEKLY REVIEW BANNER (Sundays) ── -->
+      ${new Date().getDay() === 0 ? `
+      <div class="card a-fadeup5" style="margin-bottom:14px;padding:14px;background:linear-gradient(135deg,var(--bg2),rgba(0,212,184,0.08));border-color:var(--accent-dim,var(--bdr))">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:28px">📊</div>
+          <div style="flex:1">
+            <div style="font-family:var(--display);font-weight:700;font-size:14px;color:var(--accent)">Weekly Review</div>
+            <div style="font-size:12px;color:var(--txt2);margin-top:2px">It's Sunday — let the AI generate your week in review</div>
+          </div>
+          <button class="btn btn-outline btn-sm" style="width:auto" onclick="navigate('mentor');setTimeout(()=>{const i=document.getElementById('chat-inp');if(i){i.value='Generate my weekly review';submitChat();}},400)">Review →</button>
+        </div>
+      </div>` : ''}
+
+      <!-- ── AFRICAN MARKET TIP ── -->
+      ${typeof AFRICA_DATA !== 'undefined' ? `
+      <div class="card a-fadeup5" style="margin-bottom:14px;padding:14px">
+        <div style="font-size:10px;color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:1px;margin-bottom:8px">🌍 LOCAL TRADING TIP</div>
+        ${(()=>{
+          const tip = AFRICA_DATA.localContext[new Date().getDate() % AFRICA_DATA.localContext.length];
+          const cur = STATE.user.localCurrency || 'UGX';
+          const cc = AFRICA_DATA.currencies[cur];
+          return `<div style="font-size:13px;color:var(--txt2);line-height:1.6">${tip.icon} ${tip.tip}</div>
+          ${cc ? `<div style="font-size:11px;color:var(--txt3);margin-top:6px">Current rate: $1 USD ≈ ${cc.symbol} ${cc.rateToUSD.toLocaleString()}</div>` : ''}`;
+        })()}
+        <button class="btn btn-ghost btn-xs" style="margin-top:8px" onclick="navigate('africabrokers')">View African Broker Guide →</button>
+      </div>` : ''}
 
       <!-- ── DAILY WISDOM (bottom) ── -->
       <div class="a-fadeup5" style="margin-bottom:20px">
@@ -465,4 +483,205 @@ function renderForexClock() {
         ${s.isOpen?'● OPEN':s.soon?`~${s.minsTill}m`:'Closed'}
       </div>
     </div>`).join('');
+}
+
+/* ── WEEKLY REVIEW GENERATOR ─────────────────────────────────── */
+function generateWeeklyReview() {
+  const week = 7 * 24 * 3600000;
+  const now = Date.now();
+  const allTrades = [...(STATE.journal||[]), ...(STATE.simTrades||[])];
+  const weekTrades = allTrades.filter(t => now - new Date(t.date||t.time||0).getTime() < week);
+  if (weekTrades.length === 0) return;
+
+  const wins = weekTrades.filter(t => parseFloat(t.pnl) > 0);
+  const losses = weekTrades.filter(t => parseFloat(t.pnl) < 0);
+  const totalPnl = weekTrades.reduce((a,t) => a + (parseFloat(t.pnl)||0), 0);
+  const wr = weekTrades.length > 0 ? Math.round(wins.length / weekTrades.length * 100) : 0;
+  const planFollowed = weekTrades.filter(t => t.plan === 'yes').length;
+  const planPct = weekTrades.length > 0 ? Math.round(planFollowed / weekTrades.length * 100) : 0;
+  const bestTrade = weekTrades.sort((a,b) => (parseFloat(b.pnl)||0) - (parseFloat(a.pnl)||0))[0];
+  const worstTrade = [...weekTrades].sort((a,b) => (parseFloat(a.pnl)||0) - (parseFloat(b.pnl)||0))[0];
+
+  const summary = `📊 <strong>Your Week in Review</strong><br><br>
+Trades: <strong>${weekTrades.length}</strong> · Win rate: <strong style="color:${wr>=50?'var(--accent)':'var(--red)'};">${wr}%</strong> · P&L: <strong style="color:${totalPnl>=0?'var(--accent)':'var(--red)'}">${totalPnl>=0?'+':''}$${Math.abs(totalPnl).toFixed(2)}</strong><br>
+Plan compliance: <strong style="color:${planPct>=70?'var(--accent)':'var(--red)'}">${planPct}%</strong> of trades followed your plan<br><br>
+${bestTrade ? `🏆 Best trade: ${bestTrade.pair||''} ${bestTrade.direction||''} <strong style="color:var(--accent)">+$${Math.abs(parseFloat(bestTrade.pnl)||0).toFixed(2)}</strong><br>` : ''}
+${worstTrade && parseFloat(worstTrade.pnl) < 0 ? `📉 Worst trade: ${worstTrade.pair||''} ${worstTrade.direction||''} <strong style="color:var(--red)">-$${Math.abs(parseFloat(worstTrade.pnl)||0).toFixed(2)}</strong><br>` : ''}
+<br><strong>Focus for next week:</strong> ${planPct < 60 ? 'Plan compliance is your #1 priority — only enter trades that fully meet your rules.' : wr < 40 ? 'Review your entry criteria — your setups may need refinement. Check the journal analytics.' : totalPnl < 0 ? 'Check your R:R — even with a decent win rate, small wins vs large losses can produce negative P&L.' : 'Maintain consistency — what worked this week, do more of it next week.'}`;
+
+  addNotification('📊 Your weekly review is ready — check the AI Mentor', '📊');
+  if (typeof STATE !== 'undefined') {
+    if (!STATE.chatHistory) STATE.chatHistory = [];
+    STATE.chatHistory.push({ role: 'bot', text: summary });
+    saveState();
+  }
+}
+
+/* ── AFRICA BROKER GUIDE SCREEN ──────────────────────────────── */
+function renderAfricaBrokers() {
+  if (typeof AFRICA_DATA === 'undefined') return '<div class="screen-pad"><p>Loading...</p></div>';
+  const cur = STATE.user.localCurrency || 'UGX';
+  const cc = AFRICA_DATA.currencies;
+  return `<div class="screen-pad">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px" class="a-fadeup">
+      <button class="back-btn" onclick="navigate('home')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h1 class="pg-title">African Forex Guide</h1>
+    </div>
+
+    <!-- Currency selector -->
+    <div class="a-fadeup2" style="margin-bottom:16px">
+      <div class="section-lbl">Your Currency</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${Object.entries(cc).map(([code,c]) => `
+          <button onclick="STATE.user.localCurrency='${code}';saveState();renderScreen('africabrokers')"
+            style="padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;font-family:var(--display);cursor:pointer;border:1.5px solid ${cur===code?'var(--accent)':'var(--bdr2)'};background:${cur===code?'var(--accent-bg)':'var(--bg3)'};color:${cur===code?'var(--accent)':'var(--txt2)'}">
+            ${c.flag} ${code}
+          </button>`).join('')}
+      </div>
+      ${cc[cur] ? `<div style="font-size:12px;color:var(--txt3);margin-top:8px">$1 USD = ${cc[cur].symbol} ${cc[cur].rateToUSD.toLocaleString()}</div>` : ''}
+    </div>
+
+    <!-- Starting capital table -->
+    <div class="a-fadeup2" style="margin-bottom:16px">
+      <div class="section-lbl">How much to start with</div>
+      <div class="card" style="padding:0;overflow:hidden">
+        ${(AFRICA_DATA.startingCapital.find(x=>x.currency===cur)||AFRICA_DATA.startingCapital[0]).usd.map((usd,i)=>{
+          const row = AFRICA_DATA.startingCapital.find(x=>x.currency===cur)||AFRICA_DATA.startingCapital[0];
+          const local = row.amounts[i];
+          const riskPer = (usd*0.01).toFixed(2);
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;${i<3?'border-bottom:1px solid var(--bdr2)':''}">
+            <div>
+              <div style="font-weight:700;font-size:13px">$${usd} · ${cc[cur]?cc[cur].symbol:''} ${local.toLocaleString()}</div>
+              <div style="font-size:11px;color:var(--txt2)">1% risk = $${riskPer} per trade</div>
+            </div>
+            <span class="pill ${i===0?'pill-red':i===1?'pill-accent':i===2?'pill-green':''}">
+              ${i===0?'Micro':i===1?'Starter':i===2?'Comfortable':'Advanced'}
+            </span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Recommended brokers -->
+    <div class="a-fadeup3" style="margin-bottom:16px">
+      <div class="section-lbl">Recommended Brokers for Africa</div>
+      ${AFRICA_DATA.brokers.map(b => `
+        <div class="card" style="margin-bottom:8px;padding:14px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+            <div>
+              <div style="font-family:var(--display);font-weight:700;font-size:14px">${b.name}</div>
+              <div style="font-size:11px;color:var(--txt3)">Regulated: ${b.regulated}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:11px;color:var(--accent)">Min $${b.minDeposit}</div>
+              <div style="font-size:10px;color:var(--gold)">${'★'.repeat(b.stars)}</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--txt2);line-height:1.5">${b.note}</div>
+          ${b.mobile ? `<span class="pill pill-green" style="font-size:9px;margin-top:6px;display:inline-block">📱 Mobile money accepted</span>` : ''}
+        </div>`).join('')}
+    </div>
+
+    <!-- Sessions in EAT -->
+    <div class="a-fadeup4" style="margin-bottom:16px">
+      <div class="section-lbl">Trading Sessions in East Africa Time (EAT)</div>
+      <div class="card" style="padding:0;overflow:hidden">
+        ${AFRICA_DATA.sessions_EAT.map((s,i) => `
+          <div style="display:flex;justify-content:space-between;padding:10px 14px;${i<AFRICA_DATA.sessions_EAT.length-1?'border-bottom:1px solid var(--bdr2)':''}">
+            <div style="font-weight:700;font-size:13px">${s.name}</div>
+            <div style="text-align:right">
+              <div style="font-size:12px;font-family:var(--mono)">${s.open} – ${s.close} EAT</div>
+              <div style="font-size:11px;color:${s.activity.includes('🔥')?'var(--accent)':'var(--txt3)'}">${s.activity}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Local tips -->
+    <div class="a-fadeup5" style="margin-bottom:20px">
+      <div class="section-lbl">Local Trading Tips</div>
+      ${AFRICA_DATA.localContext.map(t => `
+        <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr3)">
+          <span style="font-size:18px;flex-shrink:0">${t.icon}</span>
+          <div style="font-size:13px;color:var(--txt2);line-height:1.6">${t.tip}</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ── CASE STUDIES SCREEN ─────────────────────────────────────── */
+function renderCaseStudies() {
+  if (typeof CASE_STUDIES === 'undefined') return '<div class="screen-pad"><p>Loading...</p></div>';
+  const wins = CASE_STUDIES.filter(c => c.type === 'win');
+  const losses = CASE_STUDIES.filter(c => c.type === 'loss');
+  return `<div class="screen-pad">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px" class="a-fadeup">
+      <button class="back-btn" onclick="navigate('home')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <h1 class="pg-title">Trade Case Studies</h1>
+        <div style="font-size:12px;color:var(--txt2)">Real trade analyses — what worked and what didn't</div>
+      </div>
+    </div>
+    <div class="section-lbl a-fadeup2" style="margin-top:14px">✅ Winning Trades (${wins.length})</div>
+    ${wins.map(c => renderCaseCard(c)).join('')}
+    <div class="section-lbl a-fadeup3" style="margin-top:18px">❌ Losing Trades — Learn From These (${losses.length})</div>
+    ${losses.map(c => renderCaseCard(c)).join('')}
+  </div>`;
+}
+
+function renderCaseCard(c) {
+  const isWin = c.type === 'win';
+  return `<div class="card a-fadeup2" style="margin-bottom:10px;padding:0;overflow:hidden;cursor:pointer" onclick="openCaseStudy('${c.id}')">
+    <div style="padding:12px 14px;border-bottom:1px solid var(--bdr2)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-family:var(--display);font-weight:700;font-size:14px">${c.title}</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:2px">${c.pair} · ${c.tf} · ${c.setup}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-family:var(--mono);font-weight:700;font-size:14px;color:${isWin?'var(--accent)':'var(--red)'}">
+            ${isWin?'+':''}${c.pips > 0 ? c.pips : c.pips} pips
+          </div>
+          <span class="pill ${isWin?'pill-green':'pill-red'}" style="font-size:9px">Grade ${c.grade}</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px 14px;font-size:12px;color:var(--txt2);line-height:1.5">${c.story.substring(0,120)}…</div>
+  </div>`;
+}
+
+function openCaseStudy(id) {
+  const c = (typeof CASE_STUDIES !== 'undefined') ? CASE_STUDIES.find(x => x.id === id) : null;
+  if (!c) return;
+  const isWin = c.type === 'win';
+  const html = `
+    <div style="padding:4px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-family:var(--display);font-weight:800;font-size:16px">${c.title}</div>
+          <div style="font-size:11px;color:var(--txt3)">${c.pair} · ${c.direction} · ${c.tf}</div>
+        </div>
+        <span class="pill ${isWin?'pill-green':'pill-red'}" style="font-size:10px">Grade ${c.grade}</span>
+      </div>
+      ${c.svg || ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0">
+        ${c.entry?`<div style="text-align:center;background:var(--bg3);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--txt3)">Entry</div><div style="font-size:12px;font-weight:700;font-family:var(--mono)">${c.entry}</div></div>`:''}
+        ${c.sl?`<div style="text-align:center;background:var(--bg3);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--red)">Stop Loss</div><div style="font-size:12px;font-weight:700;font-family:var(--mono);color:var(--red)">${c.sl}</div></div>`:''}
+        ${c.tp?`<div style="text-align:center;background:var(--bg3);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--accent)">Take Profit</div><div style="font-size:12px;font-weight:700;font-family:var(--mono);color:var(--accent)">${c.tp}</div></div>`:''}
+      </div>
+      ${c.rr !== 'N/A' ? `<div style="font-size:12px;color:var(--txt2);margin-bottom:10px">R:R <strong>${c.rr}</strong> · Result: <strong style="color:${isWin?'var(--accent)':'var(--red)'}">${c.pips > 0 ?'+':''}${c.pips} pips</strong></div>` : ''}
+      ${c.warning?`<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px;font-size:12px;color:var(--red);margin-bottom:10px">⚠️ This is a cautionary example — study what went wrong</div>`:''}
+      <div style="font-size:13px;color:var(--txt);line-height:1.7;margin-bottom:12px">${c.story}</div>
+      ${c.execution?`<div style="font-size:12px;color:var(--txt2);line-height:1.6;margin-bottom:12px"><strong>Execution:</strong> ${c.execution}</div>`:''}
+      <div style="font-size:11px;color:var(--accent);font-family:var(--display);font-weight:700;margin-bottom:6px">Key Lessons</div>
+      ${(c.lessons||[]).map(l=>`<div style="display:flex;gap:8px;margin-bottom:5px"><span style="color:var(--accent);flex-shrink:0">•</span><span style="font-size:12px;color:var(--txt2);line-height:1.5">${l}</span></div>`).join('')}
+      ${c.mistakes?`<div style="font-size:12px;color:var(--red);margin-top:10px;padding:10px;background:rgba(239,68,68,0.08);border-radius:8px"><strong>Mistakes:</strong> ${c.mistakes}</div>`:''}
+      <button class="btn btn-outline btn-sm" style="margin-top:14px;width:auto" onclick="closeModal();addXP(5);showToast('📚 Case study reviewed +5 XP')">Got it +5 XP</button>
+    </div>`;
+  showModal(html);
+  addXP(2);
 }
