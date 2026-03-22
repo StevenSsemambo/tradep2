@@ -4338,3 +4338,642 @@ function minimizeFloatChat() {
 }
 
 console.log('✅ New features loaded: Hot Streak, Streak Freeze, Session Countdown, Pre-Trade Checklist, Risk of Ruin, Correlation Matrix, Speed Round');
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL SEARCH — searches lessons, glossary, strategies, pairs
+   ═══════════════════════════════════════════════════════════════ */
+function renderSearch() {
+  return `<div style="display:flex;flex-direction:column;height:calc(100vh - var(--total-nav))">
+    <div style="flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--bdr2);background:var(--bg2)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:0">
+        <button class="back-btn" onclick="history.length>1?history.back():navigate('home')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <input id="search-inp" class="inp" placeholder="Search lessons, strategies, glossary…"
+          style="flex:1;font-size:14px"
+          oninput="runSearch(this.value)" autofocus>
+      </div>
+    </div>
+    <div id="search-results" style="flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch">
+      <div style="text-align:center;padding:40px 20px;color:var(--txt3)">
+        <div style="font-size:36px;margin-bottom:8px">🔍</div>
+        <div style="font-size:13px">Type to search across all content</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function runSearch(query) {
+  const q = query.toLowerCase().trim();
+  const container = document.getElementById('search-results');
+  if (!container) return;
+  if (!q || q.length < 2) {
+    container.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--txt3);font-size:13px">Type at least 2 characters</div>';
+    return;
+  }
+
+  const results = [];
+
+  // Search lessons
+  if (typeof CURRICULUM !== 'undefined') {
+    for (const cat of CURRICULUM) {
+      for (const l of cat.lessons) {
+        if (l.title.toLowerCase().includes(q) || (l.id||'').replace(/-/g,' ').includes(q)) {
+          results.push({ type: 'lesson', icon: l.emoji||'📚', title: l.title, sub: cat.title, action: `openLesson('${l.id}')`, xp: l.xp||50 });
+        }
+      }
+    }
+  }
+
+  // Search strategies
+  if (typeof STRATEGIES !== 'undefined') {
+    STRATEGIES.filter(s => s.name.toLowerCase().includes(q) || (s.desc||'').toLowerCase().includes(q)).forEach(s => {
+      results.push({ type: 'strategy', icon: '⚔️', title: s.name, sub: `${s.style} · ${s.winrate} win rate`, action: `navigate('strategies')` });
+    });
+  }
+
+  // Search glossary
+  if (typeof FOREX_GLOSSARY !== 'undefined') {
+    Object.keys(FOREX_GLOSSARY).filter(k => k.includes(q) || FOREX_GLOSSARY[k].toLowerCase().includes(q)).slice(0,5).forEach(k => {
+      results.push({ type: 'glossary', icon: '📖', title: k.charAt(0).toUpperCase()+k.slice(1), sub: FOREX_GLOSSARY[k].substring(0,60)+'…', action: `navigate('mentor');setTimeout(()=>{const i=document.getElementById('chat-inp');if(i)i.value='What is ${k}';submitChat();},300)` });
+    });
+  }
+
+  // Search flashcards
+  if (typeof FLASHCARDS !== 'undefined') {
+    FLASHCARDS.filter(f => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q)).slice(0,4).forEach(f => {
+      results.push({ type: 'flashcard', icon: '🃏', title: f.q, sub: f.a.substring(0,70)+'…', action: `navigate('flashcards')` });
+    });
+  }
+
+  // Search case studies
+  if (typeof CASE_STUDIES !== 'undefined') {
+    CASE_STUDIES.filter(c => c.title.toLowerCase().includes(q) || c.story.toLowerCase().includes(q) || c.pair.toLowerCase().includes(q)).forEach(c => {
+      results.push({ type: 'case', icon: c.type==='win'?'✅':'❌', title: c.title, sub: `${c.pair} · ${c.setup} · ${c.pips} pips`, action: `openCaseStudy('${c.id}')` });
+    });
+  }
+
+  if (results.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--txt3)"><div style="font-size:36px;margin-bottom:8px">🤷</div><div style="font-size:13px">No results for "<strong>${query}</strong>"<br><br>Try asking the AI Mentor instead</div><button class="btn btn-outline btn-sm" style="margin-top:12px;width:auto" onclick="navigate('mentor');setTimeout(()=>{const i=document.getElementById('chat-inp');if(i)i.value='${query}';submitChat();},300)">Ask AI Mentor →</button></div>`;
+    return;
+  }
+
+  const typeBadge = {lesson:'pill-accent',strategy:'pill-purple',glossary:'pill-gold',flashcard:'pill-blue',case:'pill-green'};
+  container.innerHTML = `<div style="font-size:11px;color:var(--txt3);margin-bottom:10px">${results.length} results for "${query}"</div>` +
+    results.map(r => `
+      <div class="card card-tappable" style="margin-bottom:8px;padding:12px" onclick="${r.action}">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:22px;flex-shrink:0">${r.icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.title}</div>
+            <div style="font-size:11px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sub}</div>
+          </div>
+          <span class="pill ${typeBadge[r.type]||''}" style="font-size:9px;flex-shrink:0">${r.type}</span>
+        </div>
+      </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REPLAY SIM ENGINE — uses bundled OHLC data for realistic practice
+   ═══════════════════════════════════════════════════════════════ */
+let _replayState = {
+  active: false, pair: 'EUR/USD', candles: [], idx: 0,
+  speed: 1, openTrade: null, results: [],
+  balance: 10000, startBalance: 10000,
+};
+
+function renderReplaySim() {
+  const pairs = typeof OHLC_DATA !== 'undefined' ? Object.keys(OHLC_DATA) : ['EUR/USD'];
+  const rs = _replayState;
+  return `<div style="display:flex;flex-direction:column;height:calc(100dvh - var(--total-nav));background:#1E222D;color:#D1D4DC;overflow:hidden">
+    <!-- Header -->
+    <div style="flex-shrink:0;padding:8px 12px;background:#262B3E;border-bottom:1px solid #1E2130;display:flex;align-items:center;gap:8px">
+      <button onclick="navigate('home')" style="background:#1C1F2B;border:1px solid #363A4A;border-radius:4px;padding:5px 8px;color:#D1D4DC;cursor:pointer;font-size:11px">← Back</button>
+      <select id="rp-pair" onchange="startReplay(this.value)"
+        style="background:#1C1F2B;border:1px solid #363A4A;border-radius:4px;padding:5px 8px;color:#D1D4DC;font-weight:700;font-size:13px;cursor:pointer">
+        ${pairs.map(p=>`<option value="${p}" ${p===rs.pair?'selected':''}>${p}</option>`).join('')}
+      </select>
+      <div style="flex:1;text-align:center;font-family:monospace;font-size:12px;color:#787B86">
+        ${rs.active ? `Candle ${rs.idx}/${rs.candles.length} · Balance: <span style="color:${rs.balance>=rs.startBalance?'#26A69A':'#EF5350'}">$${rs.balance.toFixed(0)}</span>` : 'Historical Replay Practice'}
+      </div>
+      <div style="display:flex;gap:4px">
+        ${[1,3,5].map(s=>`<button onclick="_replayState.speed=${s};showToast('Speed: ${s}×')"
+          style="padding:4px 7px;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid ${rs.speed===s?'#2962FF':'#363A4A'};background:${rs.speed===s?'#2962FF':'#1C1F2B'};color:${rs.speed===s?'#fff':'#787B86'}">${s}×</button>`).join('')}
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <canvas id="replay-canvas" style="flex:1;width:100%;cursor:crosshair" onclick="replayCanvasClick(event)"></canvas>
+
+    <!-- Controls -->
+    <div style="flex-shrink:0;padding:10px 12px;background:#262B3E;border-top:1px solid #1E2130">
+      ${rs.openTrade ? `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <div style="flex:1;font-size:12px;font-family:monospace">
+            Open: <span style="color:#26A69A">${rs.openTrade.direction}</span> @ ${rs.openTrade.entry}
+            · P&L: <span id="rp-pnl" style="color:#888">$0.00</span>
+          </div>
+          <button onclick="replayClose('tp')" style="padding:7px 12px;background:#26A69A;border:none;border-radius:4px;color:#fff;font-weight:700;font-size:12px;cursor:pointer">TP</button>
+          <button onclick="replayClose('sl')" style="padding:7px 12px;background:#EF5350;border:none;border-radius:4px;color:#fff;font-weight:700;font-size:12px;cursor:pointer">SL</button>
+          <button onclick="replayClose('manual')" style="padding:7px 12px;background:#363A4A;border:none;border-radius:4px;color:#D1D4DC;font-weight:700;font-size:12px;cursor:pointer">Close</button>
+        </div>` : `
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button onclick="replayBuy()" style="flex:1;padding:10px;background:#26A69A;border:none;border-radius:4px;color:#fff;font-weight:700;font-size:14px;cursor:pointer">BUY</button>
+          <button onclick="replaySell()" style="flex:1;padding:10px;background:#EF5350;border:none;border-radius:4px;color:#fff;font-weight:700;font-size:14px;cursor:pointer">SELL</button>
+          <button onclick="replayNextCandle()" style="padding:10px 14px;background:#363A4A;border:none;border-radius:4px;color:#D1D4DC;font-weight:700;font-size:12px;cursor:pointer">Next →</button>
+        </div>`}
+      ${rs.results.length > 0 ? `
+        <div style="display:flex;gap:10px;font-size:11px;font-family:monospace;color:#787B86">
+          <span>Trades: ${rs.results.length}</span>
+          <span>Wins: <span style="color:#26A69A">${rs.results.filter(r=>r.pnl>0).length}</span></span>
+          <span>WR: ${Math.round(rs.results.filter(r=>r.pnl>0).length/rs.results.length*100)}%</span>
+          <span>P&L: <span style="color:${rs.results.reduce((a,r)=>a+r.pnl,0)>=0?'#26A69A':'#EF5350'}">$${rs.results.reduce((a,r)=>a+r.pnl,0).toFixed(0)}</span></span>
+          <button onclick="saveReplaySession()" style="margin-left:auto;background:#2962FF;border:none;border-radius:3px;padding:3px 8px;color:#fff;cursor:pointer;font-size:10px">Save</button>
+        </div>` : `<div style="font-size:11px;color:#363A4A;text-align:center">${rs.active?'Use BUY/SELL to place trades on real historical data':'Press Start to begin replay practice'}</div>`}
+    </div>
+  </div>`;
+}
+
+function startReplay(pair) {
+  if (typeof OHLC_DATA === 'undefined' || !OHLC_DATA[pair]) { showToast('Loading data…'); return; }
+  _replayState = {
+    active: true, pair, speed: _replayState.speed || 1,
+    candles: OHLC_DATA[pair].candles.slice(),
+    idx: 30, openTrade: null, results: [],
+    balance: 10000, startBalance: 10000,
+  };
+  renderScreen('replaysim');
+  setTimeout(() => { drawReplayChart(); replayAutoAdvance(); }, 100);
+}
+
+function replayNextCandle() {
+  if (_replayState.idx < _replayState.candles.length - 1) {
+    _replayState.idx++;
+    drawReplayChart();
+    checkReplayAutoClose();
+  } else { showToast('🎉 End of data — session complete!'); saveReplaySession(); }
+}
+
+let _replayAutoTimer = null;
+function replayAutoAdvance() {
+  if (_replayAutoTimer) clearInterval(_replayAutoTimer);
+}
+
+function drawReplayChart() {
+  const canvas = document.getElementById('replay-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  const candles = _replayState.candles.slice(Math.max(0, _replayState.idx - 60), _replayState.idx + 1);
+  if (!candles.length) return;
+
+  const highs = candles.map(c=>c.h), lows = candles.map(c=>c.l);
+  const maxP = Math.max(...highs), minP = Math.min(...lows);
+  const range = maxP - minP || 0.001;
+  const pad = 40, cw = (W - pad) / candles.length;
+  const toY = p => pad/2 + (1 - (p - minP) / range) * (H - pad);
+
+  ctx.fillStyle = '#1E222D'; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle = '#242832'; ctx.lineWidth = 0.5;
+  for (let i=0;i<5;i++) {
+    const y = pad/2 + i*(H-pad)/4;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    const price = maxP - i*range/4;
+    const isJPY = _replayState.pair.includes('JPY');
+    ctx.fillStyle = '#363A4A'; ctx.font = '9px monospace';
+    ctx.fillText(price.toFixed(isJPY?2:4), 2, y-2);
+  }
+
+  // Candles
+  candles.forEach((c, i) => {
+    const x = pad/2 + i*cw + cw/2;
+    const bull = c.c >= c.o;
+    const col = bull ? '#26A69A' : '#EF5350';
+    ctx.strokeStyle = col; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, toY(c.h)); ctx.lineTo(x, toY(c.l)); ctx.stroke();
+    const bodyTop = toY(Math.max(c.o,c.c));
+    const bodyH = Math.max(1, Math.abs(toY(c.o)-toY(c.c)));
+    ctx.fillStyle = col; ctx.fillRect(x-cw/2*0.7, bodyTop, cw*0.7, bodyH);
+  });
+
+  // Open trade line
+  if (_replayState.openTrade) {
+    const entryY = toY(_replayState.openTrade.entry);
+    ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(0,entryY); ctx.lineTo(W,entryY); ctx.stroke();
+    ctx.setLineDash([]);
+    const last = candles[candles.length-1];
+    const pnl = (_replayState.openTrade.direction==='BUY' ? last.c - _replayState.openTrade.entry : _replayState.openTrade.entry - last.c) * 10000 * 0.1;
+    document.getElementById('rp-pnl') && (document.getElementById('rp-pnl').textContent = (pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2));
+    document.getElementById('rp-pnl') && (document.getElementById('rp-pnl').style.color = pnl>=0?'#26A69A':'#EF5350');
+  }
+
+  // Current price tag
+  const last = candles[candles.length-1];
+  const py = toY(last.c);
+  ctx.fillStyle = '#2962FF'; ctx.fillRect(W-54, py-9, 52, 18);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 10px monospace';
+  ctx.fillText(last.c.toFixed(_replayState.pair.includes('JPY')?2:4), W-50, py+4);
+}
+
+function replayBuy() {
+  if (_replayState.openTrade) { showToast('Close current trade first'); return; }
+  const last = _replayState.candles[_replayState.idx];
+  _replayState.openTrade = { direction:'BUY', entry:last.c, entryIdx:_replayState.idx };
+  drawReplayChart();
+}
+function replaySell() {
+  if (_replayState.openTrade) { showToast('Close current trade first'); return; }
+  const last = _replayState.candles[_replayState.idx];
+  _replayState.openTrade = { direction:'SELL', entry:last.c, entryIdx:_replayState.idx };
+  drawReplayChart();
+}
+function replayClose(reason) {
+  if (!_replayState.openTrade) return;
+  const last = _replayState.candles[_replayState.idx];
+  const pips = (_replayState.openTrade.direction==='BUY' ? last.c - _replayState.openTrade.entry : _replayState.openTrade.entry - last.c) * 10000;
+  const pnl = pips * 0.1;
+  _replayState.balance += pnl;
+  _replayState.results.push({ direction:_replayState.openTrade.direction, entry:_replayState.openTrade.entry, exit:last.c, pips:pips.toFixed(1), pnl, reason });
+  _replayState.openTrade = null;
+  showToast(`Trade closed: ${pnl>=0?'+':''}$${pnl.toFixed(2)} (${pips.toFixed(1)} pips)`);
+  replayNextCandle();
+}
+function checkReplayAutoClose() {
+  if (!_replayState.openTrade) return;
+  const last = _replayState.candles[_replayState.idx];
+  const pips = (_replayState.openTrade.direction==='BUY' ? last.c - _replayState.openTrade.entry : _replayState.openTrade.entry - last.c) * 10000;
+  if (pips <= -50) replayClose('sl_auto');
+  else if (pips >= 100) replayClose('tp_auto');
+}
+function replayCanvasClick() { replayNextCandle(); }
+function saveReplaySession() {
+  const rs = _replayState;
+  if (!rs.results.length) return;
+  const pnl = rs.results.reduce((a,r)=>a+r.pnl,0);
+  const wr = Math.round(rs.results.filter(r=>r.pnl>0).length/rs.results.length*100);
+  STATE.simTrades.push(...rs.results.map(r=>({
+    id:'rp_'+Date.now()+Math.random(), date:new Date().toISOString(),
+    pair:rs.pair, direction:r.direction, pnl:r.pnl, pips:r.pips,
+    setup:'Replay Practice', tf:'H4', plan:'yes', mood:'focused',
+  })));
+  addXP(Math.max(5, Math.floor(Math.abs(pnl))));
+  saveState();
+  showToast(`✅ Session saved! ${rs.results.length} trades · ${wr}% win rate · ${pnl>=0?'+':''}$${pnl.toFixed(2)}`);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MICRO-INTERACTIONS: XP bar animation + screen transitions
+   ═══════════════════════════════════════════════════════════════ */
+let _lastXP = 0;
+function animateXPBar() {
+  const bar = document.querySelector('.prog-fill');
+  if (!bar) return;
+  const pct = Math.round((STATE.user.xp / STATE.user.xpNext) * 100);
+  bar.style.transition = 'width 0.6s cubic-bezier(0.34,1.56,0.64,1)';
+  bar.style.width = pct + '%';
+}
+
+// Hook into addXP to trigger animation
+const _origAddXP = typeof addXP === 'function' ? addXP : null;
+if (_origAddXP) {
+  window.addXP = function(amt) {
+    _origAddXP(amt);
+    setTimeout(animateXPBar, 100);
+  };
+}
+
+console.log('✅ PipStart v11 — Search, Replay Sim, Micro-interactions, Share Cards, PDF Export loaded');
+
+/* ═══════════════════════════════════════════════════════════════
+   PIPSTART v11 — NEW SYSTEMS
+   1. Global search
+   2. Share trade card (Canvas API)
+   3. XP float animation
+   4. Haptic on key events
+   5. Historical OHLC replay engine
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── GLOBAL SEARCH ───────────────────────────────────────────── */
+function renderSearch() {
+  return `<div class="screen-pad">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px" class="a-fadeup">
+      <button class="back-btn" onclick="navigate('home')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h1 class="pg-title">Search</h1>
+    </div>
+    <div class="search-bar a-fadeup2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--txt3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="search-input" type="text" placeholder="Search lessons, strategies, glossary…"
+        oninput="renderSearchResults(this.value)" autofocus>
+    </div>
+    <div id="search-results" class="a-fadeup3"></div>
+  </div>`;
+}
+
+function renderSearchResults(query) {
+  const container = document.getElementById('search-results');
+  if (!container) return;
+  if (!query || query.length < 2) { container.innerHTML = '<div style="color:var(--txt3);font-size:13px;text-align:center;padding:20px">Type to search across all content</div>'; return; }
+
+  const q = query.toLowerCase();
+  const results = [];
+
+  // Search lessons
+  if (typeof CURRICULUM !== 'undefined') {
+    CURRICULUM.forEach(cat => {
+      cat.lessons.forEach(l => {
+        if (l.title.toLowerCase().includes(q) || (l.content||'').toLowerCase().includes(q)) {
+          results.push({ type:'lesson', icon:'📚', title:l.title, sub:cat.title, action:`openLesson('${l.id}')` });
+        }
+      });
+    });
+  }
+
+  // Search strategies
+  if (typeof STRATEGIES !== 'undefined') {
+    STRATEGIES.forEach(s => {
+      if (s.name.toLowerCase().includes(q) || (s.desc||'').toLowerCase().includes(q)) {
+        results.push({ type:'strategy', icon:'⚔️', title:s.name, sub:`${s.winrate} win rate · ${s.timeframe}`, action:`navigate('strategies')` });
+      }
+    });
+  }
+
+  // Search glossary
+  if (typeof FOREX_GLOSSARY !== 'undefined') {
+    Object.entries(FOREX_GLOSSARY).forEach(([term, def]) => {
+      if (term.includes(q) || def.toLowerCase().includes(q)) {
+        results.push({ type:'glossary', icon:'📖', title:term.charAt(0).toUpperCase()+term.slice(1), sub:def.substring(0,60)+'…', action:`navigate('mentor');setTimeout(()=>{const i=document.getElementById('chat-inp');if(i){i.value='What is ${term}?';submitChat();}},400)` });
+      }
+    });
+  }
+
+  // Search case studies
+  if (typeof CASE_STUDIES !== 'undefined') {
+    CASE_STUDIES.forEach(c => {
+      if (c.title.toLowerCase().includes(q) || c.setup.toLowerCase().includes(q) || c.pair.toLowerCase().includes(q)) {
+        results.push({ type:'case', icon: c.type==='win'?'✅':'❌', title:c.title, sub:`${c.pair} · ${c.setup}`, action:`openCaseStudy('${c.id}')` });
+      }
+    });
+  }
+
+  if (results.length === 0) {
+    container.innerHTML = `<div style="color:var(--txt3);font-size:13px;text-align:center;padding:20px">No results for "${query}"</div>`;
+    return;
+  }
+
+  container.innerHTML = `<div style="font-size:11px;color:var(--txt3);margin-bottom:8px">${results.length} result${results.length>1?'s':''}</div>` +
+    results.slice(0,20).map(r => `
+      <div class="search-result-item" onclick="${r.action}">
+        <span style="font-size:18px;flex-shrink:0">${r.icon}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--txt)">${r.title}</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sub}</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--txt3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`).join('');
+}
+
+/* ── SHARE TRADE CARD (Canvas API) ───────────────────────────── */
+function shareTradeCard(entryId) {
+  const e = entryId
+    ? (STATE.journal.find(t=>t.id===entryId) || STATE.simTrades.find(t=>t.id===entryId))
+    : (STATE.journal[STATE.journal.length-1] || STATE.simTrades[STATE.simTrades.length-1]);
+  if (!e) { showToast('⚠️ No trade to share'); return; }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 800; canvas.height = 420;
+  const ctx = canvas.getContext('2d');
+
+  const pnl = parseFloat(e.pnl) || 0;
+  const isWin = pnl >= 0;
+  const accentColor = isWin ? '#00D4B8' : '#EF4444';
+
+  // Background
+  ctx.fillStyle = '#080E14';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Gradient stripe
+  const grad = ctx.createLinearGradient(0,0,canvas.width,0);
+  grad.addColorStop(0, isWin ? 'rgba(0,212,184,0.15)' : 'rgba(239,68,68,0.15)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Left accent bar
+  ctx.fillStyle = accentColor;
+  ctx.fillRect(0,0,5,canvas.height);
+
+  // Pair + direction
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 52px monospace';
+  ctx.fillText(e.pair||'EUR/USD', 40, 90);
+
+  const dir = e.direction||e.dir||'BUY';
+  ctx.fillStyle = dir==='BUY' ? '#00D4B8' : '#EF4444';
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText(dir === 'BUY' ? '▲ BUY' : '▼ SELL', 40, 135);
+
+  // P&L
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 72px monospace';
+  const pnlStr = (pnl>=0?'+':'') + '$' + Math.abs(pnl).toFixed(2);
+  ctx.fillText(pnlStr, 40, 240);
+
+  // Stats row
+  const stats = [
+    { label:'Setup',     val: e.setup||'—' },
+    { label:'Timeframe', val: e.tf||'—' },
+    { label:'R:R',       val: e.rr ? e.rr+':1' : '—' },
+    { label:'Pips',      val: e.pips ? (e.pips>0?'+':'')+e.pips : '—' },
+  ];
+  ctx.font = '18px monospace';
+  stats.forEach((s,i) => {
+    const x = 40 + i * 185;
+    ctx.fillStyle = '#666';
+    ctx.fillText(s.label, x, 290);
+    ctx.fillStyle = '#D1D4DC';
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(s.val, x, 316);
+    ctx.font = '18px monospace';
+  });
+
+  // Plan compliance
+  if (e.plan) {
+    ctx.fillStyle = e.plan==='yes' ? '#00D4B8' : '#EF4444';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(e.plan==='yes' ? '✓ Followed plan' : '✗ Broke plan rules', 40, 355);
+  }
+
+  // Date
+  ctx.fillStyle = '#555';
+  ctx.font = '14px monospace';
+  ctx.fillText(new Date(e.date||e.time||Date.now()).toLocaleDateString(), 40, 385);
+
+  // Branding
+  ctx.fillStyle = '#00D4B8';
+  ctx.font = 'bold 20px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('PipStart', canvas.width-30, 385);
+  ctx.fillStyle = '#555';
+  ctx.font = '13px monospace';
+  ctx.fillText('Forex Trading Academy', canvas.width-30, 405);
+  ctx.textAlign = 'left';
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `trade-${(e.pair||'').replace('/','_')}-${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('📸 Trade card saved! Share on WhatsApp or social media 🚀');
+  addXP(2);
+}
+
+/* ── XP FLOAT ANIMATION ─────────────────────────────────────── */
+function showXPFloat(amount, x, y) {
+  const el = document.createElement('div');
+  el.className = 'xp-float';
+  el.textContent = '+' + amount + ' XP';
+  el.style.left = (x || window.innerWidth/2 - 30) + 'px';
+  el.style.top  = (y || window.innerHeight/2) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
+/* ── HAPTIC HELPER (extended) ───────────────────────────────── */
+function hapticEvent(type) {
+  if (!navigator.vibrate) return;
+  const patterns = {
+    tap:         [30],
+    trade_open:  [40,20,40],
+    trade_close: [60],
+    achievement: [50,30,50,30,100],
+    level_up:    [80,40,80,40,120],
+    lesson_done: [50,20,80],
+    error:       [100,30,100],
+  };
+  navigator.vibrate(patterns[type] || [30]);
+}
+
+/* ── HISTORICAL REPLAY ENGINE ───────────────────────────────── */
+let _replayActive = false;
+let _replayPair = 'EUR/USD';
+let _replayIdx = 0;
+let _replaySpeed = 1;
+let _replayTimer = null;
+let _replayTrade = null;
+
+function startReplay(pair) {
+  if (typeof OHLC_DATA === 'undefined') { showToast('⚠️ Historical data not loaded'); return; }
+  _replayPair = pair || 'EUR/USD';
+  _replayIdx = 0;
+  _replayActive = true;
+  _replayTrade = null;
+  _replaySpeed = 1;
+  if (_replayTimer) clearInterval(_replayTimer);
+
+  const data = OHLC_DATA[_replayPair];
+  if (!data) { showToast('⚠️ No data for ' + _replayPair); return; }
+
+  _replayTimer = setInterval(() => {
+    if (_replayIdx >= data.candles.length - 1) {
+      stopReplay();
+      showToast('🏁 Replay complete! ' + _replayPair + ' — ' + data.candles.length + ' candles reviewed');
+      return;
+    }
+    _replayIdx += _replaySpeed;
+    updateReplayChart();
+  }, 800);
+
+  showToast('▶ Replay started: ' + _replayPair + ' H4 · ' + data.candles.length + ' candles');
+}
+
+function stopReplay() {
+  _replayActive = false;
+  if (_replayTimer) { clearInterval(_replayTimer); _replayTimer = null; }
+}
+
+function setReplaySpeed(s) {
+  _replaySpeed = s;
+  document.querySelectorAll('.replay-speed-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.speed) === s);
+  });
+}
+
+function updateReplayChart() {
+  const data = OHLC_DATA[_replayPair];
+  if (!data) return;
+  const visible = data.candles.slice(Math.max(0, _replayIdx - 60), _replayIdx + 1);
+  const currentCandle = data.candles[_replayIdx];
+  if (!currentCandle) return;
+
+  // Update terminal price display if visible
+  const priceEl = document.getElementById('term-price');
+  if (priceEl) {
+    priceEl.textContent = currentCandle.c.toFixed(_replayPair.includes('JPY') ? 3 : 4);
+  }
+
+  // Update chart candles via existing terminal draw function if available
+  if (typeof drawChartCandles === 'function') {
+    drawChartCandles(visible, _replayPair);
+  }
+}
+
+function replayBuyAtMarket() {
+  if (!_replayActive) { showToast('⚠️ Start replay first'); return; }
+  const candle = OHLC_DATA[_replayPair].candles[_replayIdx];
+  if (!candle) return;
+  _replayTrade = { type:'BUY', entry: candle.c, idx: _replayIdx, pair: _replayPair };
+  showToast('📈 Replay BUY @ ' + candle.c.toFixed(4));
+}
+
+function replaySellAtMarket() {
+  if (!_replayActive) { showToast('⚠️ Start replay first'); return; }
+  const candle = OHLC_DATA[_replayPair].candles[_replayIdx];
+  if (!candle) return;
+  _replayTrade = { type:'SELL', entry: candle.c, idx: _replayIdx, pair: _replayPair };
+  showToast('📉 Replay SELL @ ' + candle.c.toFixed(4));
+}
+
+function replayClose() {
+  if (!_replayTrade) { showToast('⚠️ No open replay trade'); return; }
+  const candle = OHLC_DATA[_replayPair].candles[_replayIdx];
+  if (!candle) return;
+  const isJPY = _replayPair.includes('JPY');
+  const pipMult = isJPY ? 100 : 10000;
+  const diff = _replayTrade.type === 'BUY'
+    ? candle.c - _replayTrade.entry
+    : _replayTrade.entry - candle.c;
+  const pips = Math.round(diff * pipMult);
+  const pnl = (pips * 0.10).toFixed(2); // 0.1 lot = $0.10/pip
+  const won = parseFloat(pnl) >= 0;
+
+  // Log to sim trades
+  STATE.simTrades.push({
+    id: 'replay_' + Date.now(),
+    date: new Date().toISOString(),
+    pair: _replayPair,
+    direction: _replayTrade.type,
+    entry: _replayTrade.entry,
+    exit: candle.c,
+    pnl: parseFloat(pnl),
+    pips,
+    tf: 'H4',
+    setup: 'Replay',
+    source: 'replay',
+  });
+  STATE.simEquity += parseFloat(pnl);
+  saveState();
+
+  _replayTrade = null;
+  hapticEvent(won ? 'trade_close' : 'error');
+  showToast(`${won ? '✅' : '❌'} Replay closed: ${pips > 0 ? '+' : ''}${pips} pips · ${parseFloat(pnl)>=0?'+':''}$${pnl}`);
+  addXP(won ? 15 : 5);
+}
