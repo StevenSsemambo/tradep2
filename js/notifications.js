@@ -94,42 +94,50 @@ function checkScheduledNotifications() {
   const now = new Date();
   const hr = now.getHours();
   const min = now.getMinutes();
-  const dayOfWeek = now.getDay();
+  const dayOfWeek = now.getDay(); // 0=Sun,1=Mon,...,5=Fri
   const todayKey = now.toDateString();
   const notifLog = JSON.parse(localStorage.getItem('tb4_notifs') || '{}');
 
   // Morning reminder (8:00 AM local)
   if (hr === 8 && min === 0 && notifLog['morning'] !== todayKey) {
-    const msg = NOTIFICATION_MESSAGES.morning[Math.floor(Math.random() * NOTIFICATION_MESSAGES.morning.length)];
-    sendNotification(msg);
+    const msgs = NOTIFICATION_MESSAGES.morning;
+    sendNotification(msgs[Math.floor(Math.random() * msgs.length)]);
     notifLog['morning'] = todayKey;
   }
 
-  // Streak reminder if not checked in by 8 PM
-  if (hr === 20 && min === 0 && STATE.dailyCheckIn !== todayKey && notifLog['streak'] !== todayKey) {
-    const msg = NOTIFICATION_MESSAGES.streak[Math.floor(Math.random() * NOTIFICATION_MESSAGES.streak.length)];
-    sendNotification(msg);
+  // Streak at risk if not checked in by 8:30 PM
+  if (hr === 20 && min === 30 && STATE.dailyCheckIn !== todayKey && STATE.dailyStreak >= 2 && notifLog['streak'] !== todayKey) {
+    sendNotification({ title: `🔥 ${STATE.dailyStreak}-day streak at risk!`, body: `Don't break your ${STATE.dailyStreak}-day streak — log in now and complete a quick flashcard!` });
     notifLog['streak'] = todayKey;
   }
 
-  // London session open (8:00 UTC)
   const utcHr = now.getUTCHours(), utcMin = now.getUTCMinutes();
-  if (utcHr === 8 && utcMin === 0 && notifLog['london'] !== todayKey) {
-    sendNotification(NOTIFICATION_MESSAGES.session[0]);
+
+  // London session open reminder (07:55 UTC = 5 min warning)
+  if (utcHr === 7 && utcMin === 55 && notifLog['london'] !== todayKey) {
+    sendNotification({ title: '🇬🇧 London opens in 5 min', body: 'Highest volume session starts at 08:00 UTC. EUR/USD and GBP/USD — mark your levels now.' });
     notifLog['london'] = todayKey;
   }
 
-  // London/NY overlap (13:00 UTC)
-  if (utcHr === 13 && utcMin === 0 && notifLog['overlap'] !== todayKey) {
-    sendNotification(NOTIFICATION_MESSAGES.session[1]);
+  // London/NY overlap (12:55 UTC = 5 min warning)
+  if (utcHr === 12 && utcMin === 55 && notifLog['overlap'] !== todayKey) {
+    sendNotification({ title: '🔥🔥 Peak trading in 5 min!', body: 'London/NY overlap 13:00–17:00 UTC — tightest spreads, strongest moves of the week.' });
     notifLog['overlap'] = todayKey;
   }
 
-  // Weekly review (Sunday 10 AM)
+  // NFP reminder (first Friday of month, 07:30 UTC)
+  if (dayOfWeek === 5 && now.getDate() <= 7 && utcHr === 7 && utcMin === 30 && notifLog['nfp'] !== todayKey) {
+    sendNotification({ title: '⚠️ NFP TODAY — 13:30 UTC', body: 'Non-Farm Payrolls releases at 13:30 UTC. Close open trades 30 min before or wait for the dust to settle.' });
+    notifLog['nfp'] = todayKey;
+  }
+
+  // Weekly review trigger (Sunday 10:00 AM local)
   if (dayOfWeek === 0 && hr === 10 && min === 0 && notifLog['weekly'] !== todayKey) {
-    const msg = NOTIFICATION_MESSAGES.weekly[Math.floor(Math.random() * NOTIFICATION_MESSAGES.weekly.length)];
-    sendNotification(msg);
+    const trades = (STATE.journal || []).length + (STATE.simTrades || []).length;
+    sendNotification({ title: '📊 Weekly review time', body: trades > 0 ? `You have ${trades} trades to review. AI mentor can generate your weekly summary now.` : 'Start your trading week right — log one sim trade and review the lessons.' });
     notifLog['weekly'] = todayKey;
+    // Also trigger in-app weekly review
+    if (typeof generateWeeklyReview === 'function') generateWeeklyReview();
   }
 
   localStorage.setItem('tb4_notifs', JSON.stringify(notifLog));
