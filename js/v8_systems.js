@@ -2349,96 +2349,102 @@ let _floatOpen = false;
 let _floatHistory = [];
 
 /* ═══════════════════════════════════════════════════════════════
-   TEXT-TO-SPEECH ENGINE — Chrome Read Aloud style
-   Uses Web Speech API (built-in, no API key needed)
+   TEXT-TO-SPEECH ENGINE  (Web Speech API — no API key needed)
    ═══════════════════════════════════════════════════════════════ */
-let _ttsEnabled = false;
-let _ttsVoice = null;
-let _ttsSpeakingBtn = null; // track which button is active
+let _ttsEnabled   = false;
+let _ttsVoice     = null;
+let _ttsSpeakBtn  = null;   // currently active speak button
 
-function initTTS() {
+function _ttsInit() {
   if (!window.speechSynthesis) return;
-  const loadVoices = () => {
-    const voices = speechSynthesis.getVoices();
-    // Prefer a natural-sounding English voice (Google voices on Android/Chrome are great)
-    _ttsVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google'))
-             || voices.find(v => v.lang.startsWith('en-GB'))
-             || voices.find(v => v.lang.startsWith('en-US'))
-             || voices.find(v => v.lang.startsWith('en'))
-             || voices[0]
-             || null;
+  const pick = () => {
+    const vs = speechSynthesis.getVoices();
+    _ttsVoice = vs.find(v => v.lang.startsWith('en') && /Google/.test(v.name))
+             || vs.find(v => v.lang.startsWith('en-GB'))
+             || vs.find(v => v.lang.startsWith('en-US'))
+             || vs.find(v => v.lang.startsWith('en'))
+             || vs[0] || null;
   };
-  loadVoices();
-  // Chrome loads voices asynchronously
-  if (speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = loadVoices;
-  }
+  pick();
+  if (typeof speechSynthesis.onvoiceschanged !== 'undefined')
+    speechSynthesis.onvoiceschanged = pick;
 }
 
+function _ttsStrip(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html.replace(/<br\s*\/?>/gi, ' ');
+  return (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
+}
+
+function _ttsResetBtns() {
+  document.querySelectorAll('.tts-speak-btn').forEach(b => {
+    b.innerHTML = _ttsIcon();
+    b.title = 'Read aloud';
+  });
+  _ttsSpeakBtn = null;
+}
+
+function _ttsIcon(stop) {
+  return stop
+    ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>`
+    : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+}
+
+/* Speak any HTML string. Optionally pass a button to animate. */
+function ttsSpeak(html, btn) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  _ttsResetBtns();
+  const text = _ttsStrip(html);
+  if (!text) return;
+  if (btn) {
+    btn.innerHTML = _ttsIcon(true);
+    btn.title = 'Stop reading';
+    _ttsSpeakBtn = btn;
+  }
+  const utt = new SpeechSynthesisUtterance(text);
+  if (_ttsVoice) utt.voice = _ttsVoice;
+  utt.rate = 1.05; utt.pitch = 1.0; utt.volume = 1.0;
+  utt.onend = utt.onerror = () => _ttsResetBtns();
+  speechSynthesis.speak(utt);
+}
+
+/* Toggle per-message speak button */
+function ttsSpeakMsg(btn, html) {
+  if (_ttsSpeakBtn === btn && speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+    _ttsResetBtns();
+    return;
+  }
+  ttsSpeak(html, btn);
+}
+
+/* Build a small speaker button element */
+function _ttsMakeBtn(html, extraStyle) {
+  const btn = document.createElement('button');
+  btn.className = 'tts-speak-btn';
+  btn.innerHTML = _ttsIcon();
+  btn.title = 'Read aloud';
+  btn.style.cssText = `background:none;border:none;cursor:pointer;padding:2px 4px;opacity:0.5;color:var(--txt2);display:inline-flex;align-items:center;transition:opacity .15s;vertical-align:middle;flex-shrink:0;${extraStyle||''}`;
+  btn.addEventListener('mouseenter', () => btn.style.opacity = '1');
+  btn.addEventListener('mouseleave', () => { if (_ttsSpeakBtn !== btn) btn.style.opacity = '0.5'; });
+  btn.addEventListener('touchstart', () => btn.style.opacity = '1', {passive:true});
+  btn.onclick = (e) => { e.stopPropagation(); ttsSpeakMsg(btn, html); };
+  return btn;
+}
+
+/* Global TTS toggle (chatbot header button) */
 function toggleFloatTTS() {
   _ttsEnabled = !_ttsEnabled;
   const btn = document.getElementById('float-tts-btn');
   if (btn) {
-    btn.textContent = _ttsEnabled ? '🔊' : '🔇';
-    btn.title = _ttsEnabled ? 'Read aloud ON — click to turn off' : 'Read aloud (Text-to-Speech)';
-    btn.style.background = _ttsEnabled ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)';
+    btn.style.background = _ttsEnabled ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.2)';
+    btn.title = _ttsEnabled ? 'Auto-read ON — tap to turn off' : 'Auto-read messages aloud';
+    btn.innerHTML = _ttsEnabled
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
   }
-  if (!_ttsEnabled) {
-    speechSynthesis.cancel();
-    _resetAllSpeakBtns();
-  }
-}
-
-function _stripHtml(html) {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  // Replace <br> with spaces for natural reading pauses
-  tmp.querySelectorAll('br').forEach(br => br.replaceWith(' '));
-  return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
-}
-
-function _resetAllSpeakBtns() {
-  document.querySelectorAll('.float-speak-btn').forEach(b => {
-    b.textContent = '🔊';
-    b.title = 'Read aloud';
-  });
-  _ttsSpeakingBtn = null;
-}
-
-function speakText(html, onEndCallback) {
-  if (!window.speechSynthesis) return;
-  speechSynthesis.cancel();
-  const clean = _stripHtml(html);
-  if (!clean) return;
-
-  const utt = new SpeechSynthesisUtterance(clean);
-  if (_ttsVoice) utt.voice = _ttsVoice;
-  utt.rate  = 1.05;  // Slightly faster than default — feels more natural
-  utt.pitch = 1.0;
-  utt.volume = 1.0;
-  utt.onend = () => {
-    _resetAllSpeakBtns();
-    if (onEndCallback) onEndCallback();
-  };
-  utt.onerror = () => _resetAllSpeakBtns();
-  speechSynthesis.speak(utt);
-}
-
-function speakFloatMsg(btn, html) {
-  // If this message is already speaking, stop it
-  if (_ttsSpeakingBtn === btn && speechSynthesis.speaking) {
-    speechSynthesis.cancel();
-    _resetAllSpeakBtns();
-    return;
-  }
-  // Stop anything else playing, reset buttons
-  speechSynthesis.cancel();
-  _resetAllSpeakBtns();
-  // Start speaking this message
-  btn.textContent = '⏹';
-  btn.title = 'Stop reading';
-  _ttsSpeakingBtn = btn;
-  speakText(html);
+  if (!_ttsEnabled) { speechSynthesis.cancel(); _ttsResetBtns(); }
 }
 
 function toggleFloatChat() {
@@ -2455,9 +2461,7 @@ function toggleFloatChat() {
   } else {
     panel.classList.remove('open');
     panel.style.display = 'none';
-    // Stop any ongoing speech when panel closes
-    if (window.speechSynthesis) speechSynthesis.cancel();
-    _resetAllSpeakBtns();
+    if (window.speechSynthesis) { speechSynthesis.cancel(); _ttsResetBtns(); }
   }
 }
 
@@ -2506,7 +2510,7 @@ function toggleFloatChat() {
     _fDragging = false;
     _fMoved = false;
     wrap.style.cursor = 'grab';
-    // If it was a pure tap (no drag movement), open the chat
+    // Pure tap (no drag) — open/close the chat
     if (!wasMoved) {
       e.preventDefault();
       toggleFloatChat();
@@ -2534,17 +2538,15 @@ function toggleFloatChat() {
 })();
 
 function handleFloatBtnClick(e) {
-  // Only toggle chat if this was a tap (not a drag)
-  const wrap = document.getElementById('float-btn-wrap');
-  if (wrap && (wrap.style.left || wrap.style.top)) {
-    // After a drag, the first tap after release should still work
-  }
+  // On desktop the mousedown/mouseup drag sets _fMoved.
+  // We reset it here so a later real click always works.
+  // On mobile this function is never reached (touchend handles it).
   toggleFloatChat();
 }
 
 
 function initFloatChat() {
-  initTTS(); // initialise Text-to-Speech voice selection
+  _ttsInit();
   const dna = calculateTraderDNA();
   const name = STATE.user.name || 'Trader';
   const greeting = dna
@@ -2577,41 +2579,27 @@ function addFloatMsg(role, text) {
   const container = document.getElementById('float-messages');
   if (!container) return;
 
-  // Wrapper aligns the bubble + speak button together
   const wrap = document.createElement('div');
-  wrap.className = 'float-msg-wrap';
-  wrap.style.cssText = `display:flex;flex-direction:column;align-items:${role === 'bot' ? 'flex-start' : 'flex-end'};gap:3px`;
+  wrap.style.cssText = `display:flex;flex-direction:column;align-items:${role==='bot'?'flex-start':'flex-end'};gap:2px`;
 
   const div = document.createElement('div');
   div.className = `float-msg ${role}`;
   div.innerHTML = text;
   wrap.appendChild(div);
 
-  // Speak button — only on bot messages
+  // Speak button under every bot bubble
   if (role === 'bot') {
-    const speakBtn = document.createElement('button');
-    speakBtn.className = 'float-speak-btn';
-    speakBtn.textContent = '🔊';
-    speakBtn.title = 'Read aloud';
-    speakBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:11px;padding:0 4px 2px;opacity:0.55;color:var(--txt2);transition:opacity .15s;line-height:1';
-    speakBtn.addEventListener('mouseenter', () => speakBtn.style.opacity = '1');
-    speakBtn.addEventListener('mouseleave', () => { if (_ttsSpeakingBtn !== speakBtn) speakBtn.style.opacity = '0.55'; });
-    speakBtn.onclick = () => speakFloatMsg(speakBtn, text);
+    const speakBtn = _ttsMakeBtn(text, 'margin-left:4px;');
     wrap.appendChild(speakBtn);
   }
 
   container.appendChild(wrap);
   container.scrollTop = container.scrollHeight;
 
-  // Auto-speak if TTS mode is enabled
+  // Auto-speak when TTS mode is on
   if (role === 'bot' && _ttsEnabled) {
-    const speakBtn = wrap.querySelector('.float-speak-btn');
-    if (speakBtn) {
-      speakBtn.textContent = '⏹';
-      speakBtn.title = 'Stop reading';
-      _ttsSpeakingBtn = speakBtn;
-    }
-    speakText(text);
+    const btn = wrap.querySelector('.tts-speak-btn');
+    ttsSpeak(text, btn || null);
   }
 }
 
