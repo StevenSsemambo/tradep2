@@ -24,6 +24,22 @@ const STATE = {
   quizResults: {},
   alerts: [],
   notifications: [],
+  mentorMemory: {
+    notes: [],
+    lastTopics: [],
+    lastSessionDate: null,
+    sessionsTotal: 0,
+    askedAbout: {},
+    breakthroughs: [],
+    struggles: [],
+    lastCompliment: null,
+  },
+  proactive: {
+    lastInterventionDate: null,
+    interventionCount: 0,
+    dismissedToday: [],
+    gateActive: false,
+  },
 };
 
 // ── PERSIST ──
@@ -49,6 +65,8 @@ function loadState() {
     if (p.quizResults) STATE.quizResults = p.quizResults;
     if (p.alerts) STATE.alerts = p.alerts;
     if (p.notifications) STATE.notifications = p.notifications;
+    if (p.mentorMemory) STATE.mentorMemory = Object.assign(STATE.mentorMemory, p.mentorMemory);
+    if (p.proactive) STATE.proactive = Object.assign(STATE.proactive, p.proactive);
     updateStreak();
     applyTheme(STATE.user.theme || 'dark');
     applyFontSize(STATE.user.fontSize || 'medium');
@@ -76,6 +94,8 @@ function saveState() {
       quizResults: STATE.quizResults,
       alerts: STATE.alerts,
       notifications: STATE.notifications,
+      mentorMemory: STATE.mentorMemory,
+      proactive: STATE.proactive,
     }));
   } catch(e) { console.warn('Save state error', e); }
 }
@@ -136,14 +156,7 @@ function addXP(amt) {
     STATE.user.xpNext = Math.floor(STATE.user.xpNext * 1.35 + 100);
     leveled = true;
   }
-  if (leveled) {
-    showLevelUp(STATE.user.level);
-    if (typeof hapticEvent === 'function') hapticEvent('level_up');
-  }
-  // XP float animation
-  if (amt >= 5 && typeof showXPFloat === 'function') {
-    showXPFloat(amt);
-  }
+  if (leveled) showLevelUp(STATE.user.level);
   saveState();
   checkAchievements();
   return leveled;
