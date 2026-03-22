@@ -4977,3 +4977,32 @@ function replayClose() {
   showToast(`${won ? '✅' : '❌'} Replay closed: ${pips > 0 ? '+' : ''}${pips} pips · ${parseFloat(pnl)>=0?'+':''}$${pnl}`);
   addXP(won ? 15 : 5);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PROACTIVE INTERVENTION MODAL
+   Called by navigate() when a critical/high alert fires.
+   onContinue callback lets the user proceed anyway.
+   ═══════════════════════════════════════════════════════════════ */
+function showProactiveModal(alert, onContinue) {
+  if (!alert) { if (onContinue) onContinue(); return; }
+
+  const severityColor = alert.severity === 'critical' ? 'var(--red)' : 'var(--gold)';
+  const severityBg    = alert.severity === 'critical' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)';
+
+  const html = `
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:38px;height:38px;border-radius:50%;background:${severityBg};border:1.5px solid ${severityColor};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${alert.severity==='critical'?'⚠️':'🧠'}</div>
+      <div>
+        <div style="font-family:var(--display);font-weight:800;font-size:15px;color:${severityColor}">${alert.title}</div>
+        <div style="font-size:11px;color:var(--txt3)">TradeMind AI · Proactive Coaching</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--txt2);line-height:1.7;margin-bottom:16px">${alert.body}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-gold" onclick="dismissIntervention('${alert.type}');closeModal();${alert.ctaAction||''}">${alert.cta||'Understood'}</button>
+      ${onContinue ? `<button class="btn btn-ghost btn-sm" onclick="dismissIntervention('${alert.type}');closeModal();(${onContinue.toString()})()">I understand the risk — continue anyway</button>` : ''}
+    </div>`;
+
+  showModal(html);
+}
