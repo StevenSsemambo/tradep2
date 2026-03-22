@@ -113,6 +113,12 @@ function renderLesson() {
         <div style="font-size:10px;color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:1px">${cat.title.toUpperCase()}</div>
         <div style="font-size:11px;color:var(--txt3)">Lesson ${idx + 1} of ${allInCat.length}</div>
       </div>
+      <button onclick="ttsReadLesson(this)" id="lesson-tts-btn"
+        style="background:var(--bg3);border:1px solid var(--bdr2);border-radius:20px;padding:5px 11px;display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--txt2);font-size:11px;font-family:var(--display);font-weight:600;transition:all .2s"
+        title="Read lesson aloud">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        Read
+      </button>
       ${done ? '<span class="pill pill-green">✓ Done</span>' : ''}
     </div>
 
@@ -154,7 +160,43 @@ function renderLesson() {
   </div>`;
 }
 
-function renderLessonQuiz(lessonId, questions) {
+function ttsReadLesson(btn) {
+  if (!window.speechSynthesis) { alert('Text-to-speech is not supported in this browser.'); return; }
+  // If already speaking, stop
+  if (speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+    btn.style.color = 'var(--txt2)';
+    btn.style.borderColor = 'var(--bdr2)';
+    btn.style.background = 'var(--bg3)';
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Read`;
+    return;
+  }
+  // Get lesson content
+  const bodyEl = document.querySelector('.lesson-body');
+  if (!bodyEl) return;
+  const d = document.createElement('div');
+  d.innerHTML = bodyEl.innerHTML.replace(/<br\s*\/?>/gi, ' ');
+  const text = (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
+  if (!text) return;
+
+  // Update button to "stop" state
+  btn.style.color = 'var(--accent)';
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.background = 'rgba(0,212,184,0.1)';
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg> Stop`;
+
+  const utt = new SpeechSynthesisUtterance(text);
+  if (_ttsVoice) utt.voice = _ttsVoice;
+  utt.rate = 1.0; utt.pitch = 1.0; utt.volume = 1.0;
+  utt.onend = utt.onerror = () => {
+    const b = document.getElementById('lesson-tts-btn');
+    if (b) {
+      b.style.color = 'var(--txt2)'; b.style.borderColor = 'var(--bdr2)'; b.style.background = 'var(--bg3)';
+      b.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Read`;
+    }
+  };
+  speechSynthesis.speak(utt);
+}
   const results = STATE.quizResults[lessonId] || {};
   const allDone = questions.every((_, i) => results[i] !== undefined);
   if (allDone) {
