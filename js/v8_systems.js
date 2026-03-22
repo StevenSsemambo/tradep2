@@ -2348,6 +2348,99 @@ function generateBehaviorInsight() {
 let _floatOpen = false;
 let _floatHistory = [];
 
+/* ═══════════════════════════════════════════════════════════════
+   TEXT-TO-SPEECH ENGINE — Chrome Read Aloud style
+   Uses Web Speech API (built-in, no API key needed)
+   ═══════════════════════════════════════════════════════════════ */
+let _ttsEnabled = false;
+let _ttsVoice = null;
+let _ttsSpeakingBtn = null; // track which button is active
+
+function initTTS() {
+  if (!window.speechSynthesis) return;
+  const loadVoices = () => {
+    const voices = speechSynthesis.getVoices();
+    // Prefer a natural-sounding English voice (Google voices on Android/Chrome are great)
+    _ttsVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google'))
+             || voices.find(v => v.lang.startsWith('en-GB'))
+             || voices.find(v => v.lang.startsWith('en-US'))
+             || voices.find(v => v.lang.startsWith('en'))
+             || voices[0]
+             || null;
+  };
+  loadVoices();
+  // Chrome loads voices asynchronously
+  if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
+}
+
+function toggleFloatTTS() {
+  _ttsEnabled = !_ttsEnabled;
+  const btn = document.getElementById('float-tts-btn');
+  if (btn) {
+    btn.textContent = _ttsEnabled ? '🔊' : '🔇';
+    btn.title = _ttsEnabled ? 'Read aloud ON — click to turn off' : 'Read aloud (Text-to-Speech)';
+    btn.style.background = _ttsEnabled ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)';
+  }
+  if (!_ttsEnabled) {
+    speechSynthesis.cancel();
+    _resetAllSpeakBtns();
+  }
+}
+
+function _stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  // Replace <br> with spaces for natural reading pauses
+  tmp.querySelectorAll('br').forEach(br => br.replaceWith(' '));
+  return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+}
+
+function _resetAllSpeakBtns() {
+  document.querySelectorAll('.float-speak-btn').forEach(b => {
+    b.textContent = '🔊';
+    b.title = 'Read aloud';
+  });
+  _ttsSpeakingBtn = null;
+}
+
+function speakText(html, onEndCallback) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const clean = _stripHtml(html);
+  if (!clean) return;
+
+  const utt = new SpeechSynthesisUtterance(clean);
+  if (_ttsVoice) utt.voice = _ttsVoice;
+  utt.rate  = 1.05;  // Slightly faster than default — feels more natural
+  utt.pitch = 1.0;
+  utt.volume = 1.0;
+  utt.onend = () => {
+    _resetAllSpeakBtns();
+    if (onEndCallback) onEndCallback();
+  };
+  utt.onerror = () => _resetAllSpeakBtns();
+  speechSynthesis.speak(utt);
+}
+
+function speakFloatMsg(btn, html) {
+  // If this message is already speaking, stop it
+  if (_ttsSpeakingBtn === btn && speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+    _resetAllSpeakBtns();
+    return;
+  }
+  // Stop anything else playing, reset buttons
+  speechSynthesis.cancel();
+  _resetAllSpeakBtns();
+  // Start speaking this message
+  btn.textContent = '⏹';
+  btn.title = 'Stop reading';
+  _ttsSpeakingBtn = btn;
+  speakText(html);
+}
+
 function toggleFloatChat() {
   _floatOpen = !_floatOpen;
   const panel = document.getElementById('float-chat-panel');
@@ -2362,6 +2455,9 @@ function toggleFloatChat() {
   } else {
     panel.classList.remove('open');
     panel.style.display = 'none';
+    // Stop any ongoing speech when panel closes
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    _resetAllSpeakBtns();
   }
 }
 
@@ -2406,8 +2502,15 @@ function toggleFloatChat() {
   }, { passive: false });
 
   wrap.addEventListener('touchend', e => {
+    const wasMoved = _fMoved;
     _fDragging = false;
+    _fMoved = false;
     wrap.style.cursor = 'grab';
+    // If it was a pure tap (no drag movement), open the chat
+    if (!wasMoved) {
+      e.preventDefault();
+      toggleFloatChat();
+    }
   });
 
   // Mouse drag for desktop
@@ -2441,6 +2544,7 @@ function handleFloatBtnClick(e) {
 
 
 function initFloatChat() {
+  initTTS(); // initialise Text-to-Speech voice selection
   const dna = calculateTraderDNA();
   const name = STATE.user.name || 'Trader';
   const greeting = dna
@@ -2472,11 +2576,43 @@ function addFloatMsg(role, text) {
   _floatHistory.push({role, text});
   const container = document.getElementById('float-messages');
   if (!container) return;
+
+  // Wrapper aligns the bubble + speak button together
+  const wrap = document.createElement('div');
+  wrap.className = 'float-msg-wrap';
+  wrap.style.cssText = `display:flex;flex-direction:column;align-items:${role === 'bot' ? 'flex-start' : 'flex-end'};gap:3px`;
+
   const div = document.createElement('div');
   div.className = `float-msg ${role}`;
   div.innerHTML = text;
-  container.appendChild(div);
+  wrap.appendChild(div);
+
+  // Speak button — only on bot messages
+  if (role === 'bot') {
+    const speakBtn = document.createElement('button');
+    speakBtn.className = 'float-speak-btn';
+    speakBtn.textContent = '🔊';
+    speakBtn.title = 'Read aloud';
+    speakBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:11px;padding:0 4px 2px;opacity:0.55;color:var(--txt2);transition:opacity .15s;line-height:1';
+    speakBtn.addEventListener('mouseenter', () => speakBtn.style.opacity = '1');
+    speakBtn.addEventListener('mouseleave', () => { if (_ttsSpeakingBtn !== speakBtn) speakBtn.style.opacity = '0.55'; });
+    speakBtn.onclick = () => speakFloatMsg(speakBtn, text);
+    wrap.appendChild(speakBtn);
+  }
+
+  container.appendChild(wrap);
   container.scrollTop = container.scrollHeight;
+
+  // Auto-speak if TTS mode is enabled
+  if (role === 'bot' && _ttsEnabled) {
+    const speakBtn = wrap.querySelector('.float-speak-btn');
+    if (speakBtn) {
+      speakBtn.textContent = '⏹';
+      speakBtn.title = 'Stop reading';
+      _ttsSpeakingBtn = speakBtn;
+    }
+    speakText(text);
+  }
 }
 
 function sendFloatQuick(text) {
