@@ -364,3 +364,119 @@ select.inp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
 /* SHOW */
 .show{display:block!important}
+
+/* ═══════════════════════════════════════════════════════════════
+   PIPSTART v11 — NEW COMPONENT STYLES
+   Screen transitions, search, African guide, case studies
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Screen slide transitions */
+@keyframes slideInRight { from { opacity:0; transform:translateX(18px); } to { opacity:1; transform:translateX(0); } }
+@keyframes slideInLeft  { from { opacity:0; transform:translateX(-18px);} to { opacity:1; transform:translateX(0); } }
+.screen-enter-right { animation: slideInRight .22s cubic-bezier(.22,.68,0,1.1) both; }
+.screen-enter-left  { animation: slideInLeft  .22s cubic-bezier(.22,.68,0,1.1) both; }
+
+/* XP bar animated fill */
+.prog-fill { transition: width .6s cubic-bezier(.22,.68,0,1.1); }
+
+/* Quick access 2x4 grid card */
+.qa-card {
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 4px;background:var(--bg3);border-radius:var(--r);
+  cursor:pointer;border:1px solid var(--bdr2);transition:all .15s;
+  text-align:center;-webkit-tap-highlight-color:transparent;
+  min-height:72px;justify-content:center;
+}
+.qa-card:active { transform:scale(.93); border-color:var(--accent); }
+
+/* Search bar */
+.search-bar {
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:24px;
+  padding:8px 14px;margin-bottom:14px;transition:border-color .2s;
+}
+.search-bar:focus-within { border-color:var(--accent); }
+.search-bar input { flex:1;background:none;border:none;outline:none;font-size:13px;color:var(--txt);font-family:inherit; }
+.search-result-item {
+  display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--bdr3);cursor:pointer;
+  align-items:flex-start;transition:background .15s;
+}
+.search-result-item:active { background:var(--bg3); }
+
+/* Case study cards */
+.case-win  { border-left:3px solid var(--accent); }
+.case-loss { border-left:3px solid var(--red); }
+
+/* Africa broker card stars */
+.broker-stars { color:var(--gold);letter-spacing:1px; }
+
+/* Journal template pills */
+.tpl-pill {
+  padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;
+  font-family:var(--display);cursor:pointer;border:1px solid var(--bdr2);
+  background:var(--bg3);color:var(--txt2);transition:all .15s;
+}
+.tpl-pill.active { border-color:var(--accent);background:var(--accent-bg);color:var(--accent); }
+
+/* PDF export button */
+.btn-export {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:20px;font-size:12px;
+  font-weight:700;font-family:var(--display);cursor:pointer;
+  border:1.5px solid var(--bdr2);background:var(--bg3);color:var(--txt2);
+  transition:all .15s;
+}
+.btn-export:active { background:var(--bg4);border-color:var(--accent);color:var(--accent); }
+
+/* Share trade card button */
+.btn-share {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:20px;font-size:12px;
+  font-weight:700;font-family:var(--display);cursor:pointer;
+  border:1.5px solid var(--accent-dim,var(--bdr));
+  background:var(--accent-bg);color:var(--accent);transition:all .15s;
+}
+.btn-share:active { opacity:.8; }
+
+/* Weekly review banner pulse */
+@keyframes pulseGlow {
+  0%,100% { box-shadow:0 0 0 0 rgba(0,212,184,0); }
+  50%      { box-shadow:0 0 0 6px rgba(0,212,184,0.12); }
+}
+.weekly-review-banner { animation:pulseGlow 3s ease infinite; }
+
+/* Haptic feedback class (visual only fallback) */
+.haptic-flash { animation:hapticFlash .15s ease both; }
+@keyframes hapticFlash { 0%,100%{opacity:1} 50%{opacity:.7} }
+
+/* Case study modal screenshot */
+.case-chart-img { width:100%;border-radius:8px;margin:10px 0;border:1px solid var(--bdr2); }
+
+/* Replay mode controls */
+.replay-bar {
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  background:#1C1F2B;border-top:1px solid #363A4A;
+}
+.replay-speed-btn {
+  padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;
+  font-family:monospace;cursor:pointer;border:1px solid #363A4A;
+  background:#1C1F2B;color:#787B86;transition:all .1s;
+}
+.replay-speed-btn.active { background:#2962FF;border-color:#2962FF;color:#fff; }
+
+/* African flag pill */
+.africa-flag-pill {
+  display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+  border-radius:12px;font-size:11px;font-weight:600;font-family:var(--display);
+  background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt2);cursor:pointer;
+  transition:all .15s;
+}
+.africa-flag-pill.active { background:var(--accent-bg);border-color:var(--accent);color:var(--accent); }
+
+/* Animated XP gain indicator */
+@keyframes xpFloat { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-40px)} }
+.xp-float {
+  position:fixed;font-family:var(--display);font-weight:800;font-size:14px;
+  color:var(--gold);pointer-events:none;z-index:9999;
+  animation:xpFloat 1.2s ease forwards;
+}
