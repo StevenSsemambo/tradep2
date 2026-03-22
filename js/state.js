@@ -136,7 +136,14 @@ function addXP(amt) {
     STATE.user.xpNext = Math.floor(STATE.user.xpNext * 1.35 + 100);
     leveled = true;
   }
-  if (leveled) showLevelUp(STATE.user.level);
+  if (leveled) {
+    showLevelUp(STATE.user.level);
+    if (typeof hapticEvent === 'function') hapticEvent('level_up');
+  }
+  // XP float animation
+  if (amt >= 5 && typeof showXPFloat === 'function') {
+    showXPFloat(amt);
+  }
   saveState();
   checkAchievements();
   return leveled;
