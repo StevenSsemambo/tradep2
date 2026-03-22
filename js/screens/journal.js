@@ -12,7 +12,10 @@ function renderJournal() {
     <div style="flex-shrink:0;padding:12px 16px 8px;border-bottom:1px solid var(--bdr2);background:var(--bg2)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <h1 class="pg-title">Trade Journal</h1>
-        <button class="btn btn-gold btn-sm" onclick="showNewEntryModal()">+ Log Trade</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" style="width:auto;padding:7px 10px;font-size:11px" onclick="exportFullJournalPDF()" title="Export full journal to PDF">📄 PDF</button>
+          <button class="btn btn-gold btn-sm" onclick="showNewEntryModal()">+ Log Trade</button>
+        </div>
       </div>
       <div class="tab-bar" style="margin-bottom:0">
         ${['log','stats','heatmap','equity'].map(t=>`
@@ -68,6 +71,9 @@ function renderJournalLog() {
           ${e.rr    ? `<span style="font-size:11px;color:var(--txt2)">R:R ${e.rr}</span>` : ''}
         </div>
         ${e.notes ? `<div style="font-size:12px;color:var(--txt2);line-height:1.5;border-top:1px solid var(--bdr3);padding-top:6px;margin-top:2px">"${e.notes.substring(0,120)}${e.notes.length>120?'…':''}"</div>` : ''}
+        <div style="display:flex;justify-content:flex-end;margin-top:6px">
+          <button onclick="event.stopPropagation();shareTradeCard('${e.id||''}')" style="background:none;border:1px solid var(--bdr2);border-radius:20px;padding:3px 10px;font-size:10px;color:var(--txt2);cursor:pointer;font-family:var(--display);font-weight:600">📤 Share</button>
+        </div>
       </div>`;
   }).join('') + `
     <div style="text-align:center;padding:20px 0;color:var(--txt3);font-size:12px">${entries.length} trades logged</div>`;
@@ -426,12 +432,46 @@ function renderJournalEquity() {
     </div>`;
 }
 
+/* ══ SCREENSHOT UPLOAD ═══════════════════════════════════════════ */
+function handleScreenshotUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('⚠️ Image too large — max 2MB'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('je-screenshot-img');
+    const preview = document.getElementById('je-screenshot-preview');
+    const placeholder = document.getElementById('je-screenshot-placeholder');
+    if (img) img.src = e.target.result;
+    if (preview) preview.style.display = 'block';
+    if (placeholder) placeholder.textContent = '✅ Screenshot attached — tap to change';
+    window._jeScreenshot = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 /* ══ NEW ENTRY MODAL ════════════════════════════════════════════ */
-function showNewEntryModal() {
-  const now = new Date().toISOString().substring(0,16);
+function showNewEntryModal(templateId) {
+  const templates = {
+    scalping: { tf:'M1', setup:'Breakout',   notes:'Fast scalp — entry on M1 breakout of 5-min high/low. Session: London/NY overlap only.' },
+    swing:    { tf:'H4', setup:'S/R Bounce', notes:'Swing trade — D1 trend confirmed, H4 entry signal, held for 2–5 days.' },
+    news:     { tf:'M15',setup:'Other',      notes:'News trade — waited 2 min post-release for direction confirmation, then entered on retrace.' },
+  };
+  const tpl = templateId && templates[templateId] ? templates[templateId] : {};
+  window._jeScreenshot = null;
+
   showModal(`
     <div class="modal-handle"></div>
-    <div style="font-family:var(--display);font-weight:800;font-size:18px;margin-bottom:16px">Log Trade</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div style="font-family:var(--display);font-weight:800;font-size:18px;flex:1">Log Trade</div>
+      <div style="display:flex;gap:5px">
+        ${['scalping','swing','news'].map(t=>`
+          <button onclick="closeModal();showNewEntryModal('${t}')"
+            style="padding:4px 9px;border-radius:12px;font-size:10px;font-weight:700;font-family:var(--display);cursor:pointer;border:1px solid ${templateId===t?'var(--accent)':'var(--bdr2)'};background:${templateId===t?'var(--accent-bg)':'var(--bg3)'};color:${templateId===t?'var(--accent)':'var(--txt2)'}">
+            ${t.charAt(0).toUpperCase()+t.slice(1)}
+          </button>`).join('')}
+      </div>
+    </div>
 
     <div class="inp-row">
       <div class="inp-wrap">
@@ -535,9 +575,49 @@ function showNewEntryModal() {
       <input class="inp" id="je-lesson" placeholder="One sentence takeaway from this trade">
     </div>
 
+    <!-- Screenshot upload -->
+    <div class="inp-wrap">
+      <label class="inp-label">Chart Screenshot (optional)</label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px dashed var(--bdr2);border-radius:var(--rs);cursor:pointer;font-size:13px;color:var(--txt2)">
+        <span id="je-img-label">📷 Tap to attach chart screenshot</span>
+        <input type="file" accept="image/*" id="je-img" style="display:none" onchange="previewJournalImg(this)">
+      </label>
+      <div id="je-img-preview" style="display:none;margin-top:8px">
+        <img id="je-img-thumb" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid var(--bdr2)">
+        <button onclick="clearJournalImg()" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;margin-top:4px">✕ Remove image</button>
+      </div>
+    </div>
+
     <button class="btn btn-gold" style="margin-top:6px" onclick="saveJournalEntry()">Save Trade Entry ✓</button>
     <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal()">Cancel</button>
   `);
+}
+
+function previewJournalImg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const thumb = document.getElementById('je-img-thumb');
+    const preview = document.getElementById('je-img-preview');
+    const lbl = document.getElementById('je-img-label');
+    if (thumb) thumb.src = e.target.result;
+    if (preview) preview.style.display = 'block';
+    if (lbl) lbl.textContent = '✅ ' + file.name;
+    // Store base64 for saving
+    window._jeImgData = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearJournalImg() {
+  window._jeImgData = null;
+  const preview = document.getElementById('je-img-preview');
+  const lbl = document.getElementById('je-img-label');
+  const input = document.getElementById('je-img');
+  if (preview) preview.style.display = 'none';
+  if (lbl) lbl.textContent = '📷 Tap to attach chart screenshot';
+  if (input) input.value = '';
 }
 
 function saveJournalEntry() {
@@ -562,7 +642,9 @@ function saveJournalEntry() {
     plan:   document.getElementById('je-plan')?.value  || 'yes',
     notes:  document.getElementById('je-notes')?.value || '',
     lesson: document.getElementById('je-lesson')?.value|| '',
+    screenshot: window._jeImgData || null,
   };
+  window._jeImgData = null;
 
   STATE.journal.push(entry);
   addXP(pnl >= 0 ? 20 : 10);
@@ -622,9 +704,14 @@ function showEntryDetail(id) {
       <div class="section-lbl">Lesson Learned</div>
       <div class="card" style="padding:12px;margin-bottom:10px;font-size:13px;color:var(--txt2);line-height:1.6;background:var(--accent-bg);border-color:var(--bdr)">💡 ${e.lesson}</div>` : ''}
 
-    <div style="display:flex;gap:8px;margin-top:4px">
+    ${e.screenshot ? `
+      <div class="section-lbl">Chart Screenshot</div>
+      <img src="${e.screenshot}" style="width:100%;border-radius:8px;border:1px solid var(--bdr2);margin-bottom:10px;max-height:220px;object-fit:contain">` : ''}
+
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
       <button class="btn btn-outline btn-sm" style="flex:1" onclick="closeModal()">Close</button>
-      <button class="btn btn-danger btn-sm" style="width:auto;padding:8px 14px" onclick="deleteJournalEntry('${e.id}')">🗑 Delete</button>
+      <button class="btn btn-outline btn-sm" style="width:auto;padding:8px 12px" onclick="exportEntryPDF('${e.id}')">📄 PDF</button>
+      <button class="btn btn-danger btn-sm" style="width:auto;padding:8px 14px" onclick="deleteJournalEntry('${e.id}')">🗑</button>
     </div>
   `);
 }
@@ -636,4 +723,244 @@ function deleteJournalEntry(id) {
   closeModal();
   navigate('journal');
   showToast('Trade entry deleted');
+}
+
+/* ── PDF EXPORT (browser print API — fully offline) ─────────── */
+function exportEntryPDF(id) {
+  const e = STATE.journal.find(t => t.id === id);
+  if (!e) return;
+  const pnl = parseFloat(e.pnl) || 0;
+  const win = pnl > 0;
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`<!DOCTYPE html><html><head><title>Trade Journal — ${e.pair}</title>
+  <style>
+    body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;color:#111;font-size:14px}
+    h1{font-size:22px;margin-bottom:4px} .sub{color:#666;font-size:13px;margin-bottom:20px}
+    .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}
+    .cell{background:#f5f5f5;border-radius:8px;padding:12px;text-align:center}
+    .cell-label{font-size:11px;color:#888;margin-bottom:4px}
+    .cell-val{font-size:16px;font-weight:700}
+    .pnl{color:${win?'#10b981':'#ef4444'};font-size:22px;font-weight:700}
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin:2px}
+    .win{background:#d1fae5;color:#065f46} .loss{background:#fee2e2;color:#7f1d1d}
+    .card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px}
+    .label{font-size:11px;color:#666;font-weight:700;letter-spacing:.5px;margin-bottom:6px}
+    .branding{margin-top:30px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:11px;color:#aaa;text-align:center}
+    img{max-width:100%;border-radius:8px;border:1px solid #e5e7eb;margin-top:8px}
+    @media print{body{margin:20px}}
+  </style></head><body>
+  <h1>${e.pair} ${e.direction || e.dir || ''} — Trade Journal Entry</h1>
+  <div class="sub">${new Date(e.date).toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+  <div class="pnl">${win?'+':''}$${Math.abs(pnl).toFixed(2)} ${win?'WIN ✅':'LOSS ❌'}</div>
+  <div class="grid">
+    <div class="cell"><div class="cell-label">Entry</div><div class="cell-val">${e.entry||'—'}</div></div>
+    <div class="cell"><div class="cell-label">Stop Loss</div><div class="cell-val" style="color:#ef4444">${e.sl||'—'}</div></div>
+    <div class="cell"><div class="cell-label">R:R</div><div class="cell-val">${e.rr||'—'}</div></div>
+    <div class="cell"><div class="cell-label">Pips</div><div class="cell-val">${e.pips||'—'}</div></div>
+    <div class="cell"><div class="cell-label">Timeframe</div><div class="cell-val">${e.tf||'—'}</div></div>
+    <div class="cell"><div class="cell-label">Setup</div><div class="cell-val" style="font-size:12px">${e.setup||'—'}</div></div>
+  </div>
+  <div style="margin-bottom:10px">
+    <span class="pill ${win?'win':'loss'}">${win?'WIN':'LOSS'}</span>
+    ${e.mood?`<span class="pill" style="background:#fef3c7;color:#78350f">Mood: ${e.mood}</span>`:''}
+    ${e.plan?`<span class="pill" style="background:${e.plan==='yes'?'#d1fae5':'#fee2e2'};color:${e.plan==='yes'?'#065f46':'#7f1d1d'}">Plan: ${e.plan==='yes'?'✓ Followed':'✗ Broke'}</span>`:''}
+  </div>
+  ${e.notes?`<div class="card"><div class="label">TRADE NOTES</div>${e.notes}</div>`:''}
+  ${e.lesson?`<div class="card" style="background:#ecfdf5"><div class="label">💡 LESSON LEARNED</div>${e.lesson}</div>`:''}
+  ${e.screenshot?`<div><div class="label">CHART SCREENSHOT</div><img src="${e.screenshot}"></div>`:''}
+  <div class="branding">PipStart — Professional Forex Trading Journal · ${new Date().getFullYear()}</div>
+  <script>window.onload=()=>window.print()</script>
+  </body></html>`);
+  printWin.document.close();
+}
+
+function exportFullJournalPDF() {
+  const entries = [...STATE.journal].reverse();
+  if (!entries.length) { showToast('No journal entries to export'); return; }
+  const allT = [...STATE.journal, ...(STATE.simTrades||[])];
+  const wins = allT.filter(t=>parseFloat(t.pnl)>0);
+  const wr = allT.length ? Math.round(wins.length/allT.length*100) : 0;
+  const totalPnl = allT.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0);
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`<!DOCTYPE html><html><head><title>PipStart Full Journal</title>
+  <style>
+    body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;color:#111;font-size:13px}
+    h1{font-size:24px} h2{font-size:16px;margin-top:24px;margin-bottom:8px;border-bottom:2px solid #e5e7eb;padding-bottom:6px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+    .stat{background:#f5f5f5;border-radius:8px;padding:12px;text-align:center}
+    .stat-val{font-size:20px;font-weight:700} .stat-lbl{font-size:11px;color:#666}
+    .entry{border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;page-break-inside:avoid}
+    .win-border{border-left:4px solid #10b981} .loss-border{border-left:4px solid #ef4444}
+    .row{display:flex;justify-content:space-between;margin-bottom:4px}
+    .branding{margin-top:30px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:11px;color:#aaa;text-align:center}
+    @media print{body{margin:10px}}
+  </style></head><body>
+  <h1>PipStart — Complete Trade Journal</h1>
+  <p style="color:#666">${STATE.user.name||'Trader'} · Exported ${new Date().toLocaleDateString()}</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">${allT.length}</div><div class="stat-lbl">Total Trades</div></div>
+    <div class="stat"><div class="stat-val" style="color:${wr>=50?'#10b981':'#ef4444'}">${wr}%</div><div class="stat-lbl">Win Rate</div></div>
+    <div class="stat"><div class="stat-val" style="color:${totalPnl>=0?'#10b981':'#ef4444'}">${totalPnl>=0?'+':''}$${Math.abs(totalPnl).toFixed(0)}</div><div class="stat-lbl">Net P&L</div></div>
+    <div class="stat"><div class="stat-val">${STATE.dailyStreak}</div><div class="stat-lbl">Day Streak</div></div>
+  </div>
+  <h2>Journal Entries (${entries.length})</h2>
+  ${entries.map(e=>{
+    const pnl=parseFloat(e.pnl)||0; const win=pnl>0;
+    return `<div class="entry ${win?'win-border':'loss-border'}">
+      <div class="row"><strong>${e.pair||'—'} ${e.direction||e.dir||''}</strong><strong style="color:${win?'#10b981':'#ef4444'}">${win?'+':''}$${Math.abs(pnl).toFixed(2)}</strong></div>
+      <div class="row"><span style="color:#666;font-size:11px">${new Date(e.date).toLocaleDateString()} · ${e.tf||''} · ${e.setup||''}</span><span style="font-size:11px">${e.pips?e.pips+' pips':''} ${e.rr?'R:R '+e.rr:''}</span></div>
+      ${e.mood?`<div style="font-size:11px;color:#666">Mood: ${e.mood} · Plan: ${e.plan==='yes'?'✓':'✗'}</div>`:''}
+      ${e.notes?`<div style="font-size:12px;margin-top:6px;color:#333">${e.notes}</div>`:''}
+      ${e.lesson?`<div style="font-size:11px;margin-top:4px;color:#065f46">💡 ${e.lesson}</div>`:''}
+    </div>`;
+  }).join('')}
+  <div class="branding">PipStart · ${new Date().getFullYear()}</div>
+  <script>window.onload=()=>window.print()</script>
+  </body></html>`);
+  printWin.document.close();
+}
+
+/* ── SHARE TRADE CARD (Canvas API — fully offline) ───────────── */
+function shareTradeCard(id) {
+  const e = id ? STATE.journal.find(t=>t.id===id) : null;
+  if (!e) { showToast('Trade not found'); return; }
+  const pnl = parseFloat(e.pnl)||0;
+  const win = pnl > 0;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 600; canvas.height = 320;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#080E14';
+  ctx.fillRect(0, 0, 600, 320);
+  // Accent bar
+  ctx.fillStyle = win ? '#00D4B8' : '#EF4444';
+  ctx.fillRect(0, 0, 6, 320);
+  // Header
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText(e.pair || 'EUR/USD', 30, 50);
+  ctx.font = '16px monospace';
+  ctx.fillStyle = '#888';
+  ctx.fillText((e.direction||'BUY') + ' · ' + (e.tf||'H1') + ' · ' + (e.setup||''), 30, 76);
+  // P&L
+  ctx.font = 'bold 48px monospace';
+  ctx.fillStyle = win ? '#00D4B8' : '#EF4444';
+  ctx.fillText((win?'+':'') + '$' + Math.abs(pnl).toFixed(2), 30, 148);
+  // Stats row
+  ctx.font = '14px monospace';
+  ctx.fillStyle = '#888';
+  const stats = [
+    ['PIPS', e.pips||'—'], ['R:R', e.rr||'—'], ['PLAN', e.plan==='yes'?'✓':'✗'], ['MOOD', e.mood||'—']
+  ];
+  stats.forEach(([lbl,val],i) => {
+    const x = 30 + i*140;
+    ctx.fillStyle = '#555'; ctx.fillText(lbl, x, 190);
+    ctx.fillStyle = '#DDD'; ctx.font = 'bold 16px monospace'; ctx.fillText(String(val), x, 212);
+    ctx.font = '14px monospace';
+  });
+  // Date
+  ctx.fillStyle = '#444';
+  ctx.font = '12px monospace';
+  ctx.fillText(new Date(e.date).toLocaleDateString(), 30, 255);
+  // Branding
+  ctx.fillStyle = '#00D4B8';
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText('PipStart', 30, 290);
+  ctx.fillStyle = '#444';
+  ctx.font = '12px monospace';
+  ctx.fillText('Forex Trading Academy', 110, 290);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `trade-${e.pair||'card'}-${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('📸 Trade card saved! Share it on WhatsApp or social media 🚀');
+}
+
+/* ── SCREENSHOT UPLOAD HANDLER (alias) ───────────────────────── */
+function handleScreenshotUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('⚠️ Image too large — max 2MB'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    window._jeScreenshot = e.target.result;
+    const img = document.getElementById('je-screenshot-img');
+    const preview = document.getElementById('je-screenshot-preview');
+    const placeholder = document.getElementById('je-screenshot-placeholder');
+    if (img) img.src = e.target.result;
+    if (preview) preview.style.display = 'block';
+    if (placeholder) placeholder.textContent = '✅ Screenshot attached — tap to change';
+    // Also set the old variable for backwards compat
+    window._jeImgData = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── PDF / PRINT EXPORT ──────────────────────────────────────── */
+function exportJournalPDF() {
+  const entries = STATE.journal;
+  if (!entries.length) { showToast('⚠️ No journal entries to export'); return; }
+
+  const wins = entries.filter(e => parseFloat(e.pnl) > 0);
+  const losses = entries.filter(e => parseFloat(e.pnl) <= 0);
+  const totalPnl = entries.reduce((a,e) => a + (parseFloat(e.pnl)||0), 0);
+  const wr = entries.length > 0 ? Math.round(wins.length / entries.length * 100) : 0;
+  const planPct = entries.length > 0 ? Math.round(entries.filter(e => e.plan === 'yes').length / entries.length * 100) : 0;
+
+  const win = window.open('', '_blank');
+  if (!win) { showToast('⚠️ Allow popups to export PDF'); return; }
+
+  win.document.write(`<!DOCTYPE html><html><head><title>PipStart Trade Journal</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;margin:20px;line-height:1.5}
+    h1{font-size:22px;color:#00b49c;margin-bottom:4px}
+    .subtitle{color:#666;font-size:12px;margin-bottom:20px}
+    .stats{display:flex;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+    .stat{background:#f5f5f5;padding:10px 16px;border-radius:8px;text-align:center}
+    .stat-val{font-size:20px;font-weight:bold;color:#00b49c}
+    .stat-lbl{font-size:11px;color:#888}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th{background:#00b49c;color:#fff;padding:8px 10px;text-align:left;font-size:12px}
+    td{padding:7px 10px;border-bottom:1px solid #eee;font-size:12px}
+    tr:nth-child(even){background:#fafafa}
+    .win{color:#00b49c;font-weight:bold}
+    .loss{color:#e53e3e;font-weight:bold}
+    .footer{margin-top:30px;font-size:11px;color:#999;text-align:center}
+    @media print{body{margin:0}button{display:none}}
+  </style></head><body>
+  <h1>📓 Trade Journal — ${STATE.user.name || 'Trader'}</h1>
+  <div class="subtitle">Exported ${new Date().toLocaleDateString()} · PipStart Forex Academy</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">${entries.length}</div><div class="stat-lbl">Total Trades</div></div>
+    <div class="stat"><div class="stat-val" style="color:${wr>=50?'#00b49c':'#e53e3e'}">${wr}%</div><div class="stat-lbl">Win Rate</div></div>
+    <div class="stat"><div class="stat-val" style="color:${totalPnl>=0?'#00b49c':'#e53e3e'}">${totalPnl>=0?'+':''}$${Math.abs(totalPnl).toFixed(2)}</div><div class="stat-lbl">Net P&L</div></div>
+    <div class="stat"><div class="stat-val" style="color:${planPct>=70?'#00b49c':'#e53e3e'}">${planPct}%</div><div class="stat-lbl">Plan Compliance</div></div>
+  </div>
+  <table>
+    <tr><th>Date</th><th>Pair</th><th>Dir</th><th>Setup</th><th>TF</th><th>P&L</th><th>Pips</th><th>R:R</th><th>Mood</th><th>Plan</th></tr>
+    ${entries.map(e => {
+      const pnl = parseFloat(e.pnl)||0;
+      return `<tr>
+        <td>${new Date(e.date||e.time).toLocaleDateString()}</td>
+        <td><strong>${e.pair||''}</strong></td>
+        <td>${e.direction||e.dir||''}</td>
+        <td>${e.setup||''}</td>
+        <td>${e.tf||''}</td>
+        <td class="${pnl>=0?'win':'loss'}">${pnl>=0?'+':''}$${Math.abs(pnl).toFixed(2)}</td>
+        <td>${e.pips||''}</td>
+        <td>${e.rr||''}</td>
+        <td>${e.mood||''}</td>
+        <td style="color:${e.plan==='yes'?'#00b49c':'#e53e3e'}">${e.plan==='yes'?'✓':'✗'}</td>
+      </tr>`;
+    }).join('')}
+  </table>
+  <div class="footer">PipStart Forex Academy · Generated ${new Date().toLocaleString()}</div>
+  <script>window.onload=()=>{window.print();}</script>
+  </body></html>`);
+  win.document.close();
+  showToast('📄 Opening print dialog — save as PDF');
 }
