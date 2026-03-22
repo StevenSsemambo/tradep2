@@ -5,6 +5,27 @@
    then generateResponse() as fallback
    ═══════════════════════════════════════════ */
 
+/* ── MENTOR SCREEN TTS STATE ─────────────────────────────────── */
+let _mentorTtsEnabled = false;
+
+function toggleMentorTTS(btn) {
+  _mentorTtsEnabled = !_mentorTtsEnabled;
+  if (!btn) btn = document.getElementById('mentor-tts-btn');
+  if (!btn) return;
+  if (_mentorTtsEnabled) {
+    btn.style.color = 'var(--accent)';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.background = 'rgba(0,212,184,0.1)';
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> On`;
+  } else {
+    btn.style.color = 'var(--txt2)';
+    btn.style.borderColor = 'var(--bdr2)';
+    btn.style.background = 'var(--bg3)';
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg> Read`;
+    if (window.speechSynthesis) { speechSynthesis.cancel(); if (typeof _ttsResetBtns === 'function') _ttsResetBtns(); }
+  }
+}
+
 function renderMentor() {
   const name = STATE.user.name || 'Trader';
   const history = STATE.chatHistory || [];
@@ -37,6 +58,12 @@ function renderMentor() {
         </div>
       </div>
       <div style="display:flex;gap:6px">
+        <button id="mentor-tts-btn" onclick="toggleMentorTTS(this)"
+          style="background:var(--bg3);border:1px solid var(--bdr2);border-radius:20px;padding:5px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--txt2);font-size:11px;font-family:var(--display);font-weight:600;transition:all .2s"
+          title="Read replies aloud">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          Read
+        </button>
         <button class="btn-icon" onclick="clearChat()" title="Clear chat">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.15"/></svg>
         </button>
@@ -103,12 +130,26 @@ function appendChatMessage(role, text) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
   const end = document.getElementById('chat-end');
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `display:flex;flex-direction:column;align-items:${role==='bot'?'flex-start':'flex-end'};gap:2px`;
+
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
   div.innerHTML = text;
   div.style.animation = 'fadeUp .25s ease both';
-  if (end) container.insertBefore(div, end);
-  else container.appendChild(div);
+  wrap.appendChild(div);
+
+  // Speak button on every bot reply
+  if (role === 'bot' && typeof _ttsMakeBtn === 'function') {
+    const speakBtn = _ttsMakeBtn(text, 'margin-left:2px;');
+    wrap.appendChild(speakBtn);
+    // Auto-speak if mentor TTS is active
+    if (_mentorTtsEnabled && typeof ttsSpeak === 'function') ttsSpeak(text, speakBtn);
+  }
+
+  if (end) container.insertBefore(wrap, end);
+  else container.appendChild(wrap);
   scrollChatToBottom();
 }
 
