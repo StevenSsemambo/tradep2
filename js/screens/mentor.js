@@ -28,6 +28,109 @@ function toggleMentorTTS(btn) {
 function renderMentor() {
   const name = STATE.user.name || 'Trader';
   const history = STATE.chatHistory || [];
+
+  // Build opening message using memory engine if available
+  let openingMsg = '';
+  if (history.length === 0) {
+    if (typeof buildSessionGreeting === 'function') {
+      openingMsg = buildSessionGreeting();
+    } else {
+      const allTrades = [...(STATE.journal||[]), ...(STATE.simTrades||[])];
+      const wr = allTrades.length > 0
+        ? Math.round(allTrades.filter(t=>parseFloat(t.pnl)>0).length / allTrades.length * 100) : 0;
+      const dna = (typeof calculateTraderDNA === 'function') ? calculateTraderDNA() : null;
+      const lines = [];
+      if (dna) lines.push(`You're a <strong style="color:var(--accent)">${dna.archetype}</strong>.`);
+      if (allTrades.length > 0) lines.push(`${allTrades.length} trades logged · ${wr}% win rate.`);
+      if ((STATE.dailyStreak||0) > 0) lines.push(`${STATE.dailyStreak}-day streak.`);
+      const detail = lines.length ? lines.join(' ') + '<br><br>' : '';
+      openingMsg = `Hey ${name}! ${detail}I know your trading history and everything in this app. Ask me anything — concepts, your patterns, setup review, or just tell me how a trade went.`;
+    }
+  }
+
+  // Check for a proactive banner to show at top
+  const proAlert = (typeof getProactiveAlert === 'function') ? getProactiveAlert(true) : null;
+  const proactiveBanner = proAlert && proAlert.compact ? `
+    <div id="mentor-proactive-banner" style="flex-shrink:0;padding:10px 14px;background:rgba(245,158,11,0.08);border-bottom:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;gap:10px">
+      <div style="flex:1;font-size:12px;color:var(--gold);line-height:1.5">${proAlert.compact}</div>
+      <button onclick="document.getElementById('mentor-proactive-banner')?.remove()" style="background:none;border:none;cursor:pointer;color:var(--txt3);font-size:16px;flex-shrink:0">×</button>
+    </div>` : '';
+
+  return `<div style="display:flex;flex-direction:column;height:calc(100vh - var(--total-nav));background:var(--bg)">
+
+    <!-- Header -->
+    <div style="flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--bdr2);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent-d),var(--accent));display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;box-shadow:0 0 14px var(--accent-glow)">🤖</div>
+        <div>
+          <div style="font-family:var(--display);font-weight:800;font-size:16px">TradeMind AI</div>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:1px">
+            <span class="live-dot"></span>
+            <span style="font-size:11px;color:var(--accent)">Remembers your history · Personalised coaching</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button id="mentor-tts-btn" onclick="toggleMentorTTS(this)"
+          style="background:var(--bg3);border:1px solid var(--bdr2);border-radius:20px;padding:5px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--txt2);font-size:11px;font-family:var(--display);font-weight:600"
+          title="Read replies aloud">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          Read
+        </button>
+        <button class="btn-icon" onclick="clearChat()" title="Clear chat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    ${proactiveBanner}
+
+    <!-- Quick chips -->
+    <div style="flex-shrink:0;display:flex;gap:6px;overflow-x:auto;padding:8px 14px;border-bottom:1px solid var(--bdr2);scrollbar-width:none;-webkit-overflow-scrolling:touch">
+      ${[
+        'Analyse my patterns', 'Quiz me', 'My study plan',
+        'My weakness?', 'Best pair for me', 'Should I trade today?',
+        'My win rate', 'Best setup for me', 'Review my last trade',
+        'What is RSI?', 'SMC explained', 'Teach me Fibonacci simply',
+        'My progress', 'I am frustrated', 'Risk management',
+      ].map(q => `<div
+        style="flex-shrink:0;background:var(--bg3);border:1px solid var(--bdr2);border-radius:20px;padding:6px 13px;font-size:11px;color:var(--txt2);cursor:pointer;white-space:nowrap;font-family:var(--display);font-weight:600;transition:all .2s;-webkit-tap-highlight-color:transparent"
+        onclick="sendQuickQuestion('${q.replace(/'/g, "\\'")}');this.style.color='var(--accent)';this.style.borderColor='var(--accent)'"
+      >${q}</div>`).join('')}
+    </div>
+
+    <!-- Messages -->
+    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
+      ${history.length === 0 ? `
+        <div class="chat-msg bot">
+          ${openingMsg}
+        </div>
+      ` : history.map(m => `
+        <div class="chat-msg ${m.role}">${m.text}</div>
+      `).join('')}
+      <div id="chat-end" style="height:4px;flex-shrink:0"></div>
+    </div>
+
+    <!-- Input bar -->
+    <div style="flex-shrink:0;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom,10px));border-top:1px solid var(--bdr2);display:flex;gap:8px;align-items:center;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)">
+      <input id="chat-inp"
+        style="flex:1;background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:24px;padding:11px 16px;font-size:14px;color:var(--txt);transition:border-color .2s;outline:none;font-family:inherit"
+        placeholder="Ask me anything about your trading..."
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitChat()}"
+        onfocus="this.style.borderColor='var(--accent)'"
+        onblur="this.style.borderColor='var(--bdr2)'">
+      <button onclick="submitChat()"
+        style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent-d),var(--accent));color:#080E14;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;box-shadow:0 4px 14px var(--accent-glow);border:none;transition:transform .15s"
+        ontouchstart="this.style.transform='scale(.88)'"
+        ontouchend="this.style.transform='scale(1)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>`;
+}
   const dna = (typeof calculateTraderDNA === 'function') ? calculateTraderDNA() : null;
   const allTrades = [...(STATE.journal||[]), ...(STATE.simTrades||[])];
   const wr = allTrades.length > 0
@@ -118,7 +221,6 @@ function renderMentor() {
       </button>
     </div>
   </div>`;
-}
 
 function scrollChatToBottom() {
   const el = document.getElementById('chat-end');
@@ -222,6 +324,19 @@ function submitChat() {
     STATE.chatHistory.push({ role: 'bot', text: response });
     appendChatMessage('bot', response);
     addXP(2);
+
+    // Save memory note if the response contains something significant
+    if (typeof saveMentorNote === 'function' && response.length > 100) {
+      const topicHints = [
+        ['rsi|divergence', 'rsi'], ['macd', 'macd'], ['fibonacci|fib', 'fibonacci'],
+        ['support|resistance', 'support_resistance'], ['smc|order block', 'smc'],
+        ['risk|position size', 'risk_management'], ['psychology|emotion', 'psychology'],
+        ['pattern report|performance analysis', 'pattern_review'],
+      ];
+      const matched = topicHints.find(([pattern]) => new RegExp(pattern,'i').test(response));
+      if (matched) saveMentorNote(`Discussed ${matched[1].replace(/_/g,' ')} with ${STATE.user.name||'user'}`, matched[1]);
+    }
+
     saveState();
 
     // Trim history to last 40 messages to prevent memory bloat
