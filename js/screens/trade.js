@@ -1088,6 +1088,22 @@ function closeSimTrade(reason = 'Manual') {
   } else {
     showToast(`❌ ${reason}: ${fmtCurrency(pnl)}`);
   }
+
+  // AI post-mortem — fires after a short delay so the toast shows first
+  setTimeout(() => {
+    if (typeof showTradePostMortem === 'function') showTradePostMortem(closedTrade);
+  }, 800);
+
+  // Proactive check — warn if this creates a loss streak
+  setTimeout(() => {
+    if (typeof getProactiveAlert === 'function') {
+      const alert = getProactiveAlert();
+      if (alert && alert.severity === 'critical' && typeof showProactiveModal === 'function') {
+        showProactiveModal(alert);
+      }
+    }
+  }, 1500);
+
   navigate('trade');
 }
 
