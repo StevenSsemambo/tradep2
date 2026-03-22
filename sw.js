@@ -1,14 +1,15 @@
-/* TradeBaby Pro v10 — Service Worker */
-const CACHE = 'tradebaby-v10';
+/* TradeBaby Pro v11 — Service Worker */
+const CACHE = 'pipstart-v11';
 const CORE = ['./','./index.html','./manifest.json','./icons/icon.svg','./offline.html',
-  './css/theme.css','./css/components.css','./css/screens.css','./css/splash.css',
+  './css/theme.css','./css/components.css','./css/screens.css',
   './js/app.js','./js/state.js','./js/data.js','./js/curriculum.js','./js/chatbot.js',
-  './js/notifications.js','./js/v8_systems.js',
+  './js/notifications.js','./js/v8_systems.js','./js/case_studies.js',
   './js/analysis_guides.js',
   './js/trading_encyclopedia.js',
   './js/market_data_extended.js',
   './js/quiz_bank.js',
   './js/extended_content.js',
+  './js/ai_brain.js',
   './js/screens/home.js','./js/screens/learn.js','./js/screens/trade.js',
   './js/screens/journal.js','./js/screens/mentor.js','./js/screens/profile.js',
 ];
