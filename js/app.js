@@ -168,7 +168,7 @@ function navigate(screen, opts = {}) {
 
   // Nav highlight
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  const nav5 = { home: 'ni-home', learn: 'ni-learn', trade: 'ni-trade', journal: 'ni-journal' };
+  const nav5 = { home: 'ni-home', learn: 'ni-learn', trade: 'ni-trade', journal: 'ni-journal', search: 'ni-search' };
   const navId = nav5[screen];
   if (navId) {
     const nb = document.getElementById(navId);
@@ -179,6 +179,17 @@ function navigate(screen, opts = {}) {
   }
 
   renderScreen(screen);
+
+  // Slide-in animation on screen change
+  const screenEl = document.getElementById('screen');
+  if (screenEl) {
+    screenEl.classList.remove('screen-enter-right','screen-enter-left');
+    void screenEl.offsetWidth; // force reflow
+    screenEl.classList.add('screen-enter-right');
+  }
+
+  // Haptic tap feedback
+  if (typeof hapticEvent === 'function') hapticEvent('tap');
 
   const sw = document.getElementById('screen-wrap');
   if (sw) {
@@ -217,7 +228,14 @@ function renderScreen(screen) {
     challenges:  () => typeof renderChallenges === 'function' ? renderChallenges() : '',
     shoulditrade:() => typeof renderShouldITrade === 'function' ? renderShouldITrade() : '',
     pairprofiles:() => typeof renderPairProfiles === 'function' ? renderPairProfiles() : '',
+    casestudies:  () => typeof renderCaseStudies === 'function' ? renderCaseStudies() : '',
+    africabrokers:() => typeof renderAfricaBrokers === 'function' ? renderAfricaBrokers() : '',
+    search:       () => typeof renderSearch === 'function' ? renderSearch() : '',
     vault:       () => typeof renderKnowledgeVault === 'function' ? renderKnowledgeVault() : '',
+    search:      () => typeof renderSearch === 'function' ? renderSearch() : '',
+    replaysim:   () => typeof renderReplaySim === 'function' ? renderReplaySim() : '',
+    casestudies: () => typeof renderCaseStudies === 'function' ? renderCaseStudies() : '',
+    africabrokers:()=> typeof renderAfricaBrokers === 'function' ? renderAfricaBrokers() : '',
     biastest:    () => typeof renderBiasTest === 'function' ? renderBiasTest() : '',
   };
 
@@ -406,6 +424,18 @@ function finishOnboarding() {
   if (!STATE.user.level) STATE.user.level = 1;
   if (!STATE.user.xp) STATE.user.xp = 0;
   if (!STATE.user.xpNext) STATE.user.xpNext = 500;
+
+  // Build personalised first-step plan based on answers
+  const exp = STATE.user.experience;
+  STATE.user.studyPlan = [];
+  if (exp === 'complete-beginner') {
+    STATE.user.studyPlan = ['forex-basics','risk-management','candlesticks','support-resistance'];
+  } else if (exp === 'some-knowledge') {
+    STATE.user.studyPlan = ['risk-management','technical-analysis','trading-psychology','strategies'];
+  } else {
+    STATE.user.studyPlan = ['trading-psychology','smc-concepts','journalling','backtesting'];
+  }
+  STATE.user.localCurrency = detectLocalCurrency();
   saveState();
 
   // Assign learning path
@@ -563,10 +593,34 @@ function triggerInstall() {
   if (s) window.addEventListener('tb_ready', () => setTimeout(() => navigate(s), 400));
 })();
 
+/* ══ LOCAL CURRENCY DETECTION ══ */
+function detectLocalCurrency() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (/Africa\/(Kampala|Nairobi|Dar_es_Salaam)/.test(tz)) return tz.includes('Kampala') ? 'UGX' : tz.includes('Nairobi') ? 'KES' : 'TZS';
+    if (/Africa\/Lagos/.test(tz)) return 'NGN';
+    if (/Africa\/Accra/.test(tz)) return 'GHS';
+    if (/Africa\/Johannesburg/.test(tz)) return 'ZAR';
+  } catch(e) {}
+  return 'USD';
+}
+
+/* ══ SCREEN TRANSITION ══ */
+function _animateScreen(direction) {
+  const el = document.getElementById('screen');
+  if (!el) return;
+  const fromClass = direction === 'forward' ? 'screen-exit-left' : 'screen-exit-right';
+  const toClass   = direction === 'forward' ? 'screen-enter-right' : 'screen-enter-left';
+  el.classList.add(toClass);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { el.classList.remove(toClass); });
+  });
+}
+
 /* ══ AUTO SAVE ══ */
 setInterval(saveState, 30000);
 
 /* ══ BOOT ══ */
 document.addEventListener('DOMContentLoaded', bootApp);
 
-console.log('🚀 TradeBaby Pro v10 — SayMy Tech');
+console.log('🚀 PipStart v11 — SayMy Tech');
